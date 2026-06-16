@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+.DS_Store
+*.zip
+temp*/
+custom-pet-player-extracted/
+raccoon-pet/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
