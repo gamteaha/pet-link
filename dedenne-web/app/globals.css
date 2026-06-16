@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-dedenne: #FF914D;
+  --color-dedenne-light: #FFB385;
+  --color-dedenne-dark: #E67A32;
+  --color-pet-bg: #FDFAF5;
+  --color-pet-point: #E8A87C;
+  --color-pet-text: #3D2B1F;
+  --color-pet-subtext: #8B6F5E;
+  --font-mono: var(--font-geist-mono);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  transition: all 0.25s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.pet-case-card {
+  background: linear-gradient(
+    160deg,
+    rgba(220, 245, 255, 0.6) 0%,
+    rgba(180, 225, 245, 0.3) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(120, 200, 230, 0.7);
+  border-radius: 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.6),
+    inset 0 -2px 8px rgba(100,180,220,0.2),
+    0 4px 20px rgba(80, 160, 200, 0.15);
+  overflow: hidden;
+  position: relative;
+  transition: all 0.25s ease;
+}
+
+.pet-case-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.4) 0%,
+    rgba(255,255,255,0) 100%
+  );
+  pointer-events: none;
+  border-radius: 16px 16px 0 0;
+  z-index: 10;
+}
+
+.pet-case-card::after {
+  content: '';
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.pet-case-floor {
+  background: linear-gradient(
+    180deg,
+    rgba(180, 230, 200, 0.3) 0%,
+    rgba(160, 210, 180, 0.5) 100%
+  );
+  height: 28px;
+  border-top: 1px solid rgba(120, 200, 150, 0.3);
+  width: 100%;
+}
+
+.pet-case-card:hover {
+  border-color: rgba(80, 180, 220, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.7),
+    inset 0 -2px 12px rgba(80,160,210,0.3),
+    0 8px 30px rgba(80, 160, 200, 0.25);
+  transform: translateY(-4px);
+}
+
+.pet-display-area {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255,255,255,0.6) 0%,
+    rgba(200,235,255,0.2) 70%
+  );
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: 140px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.pet-bg-pattern {
+  background: linear-gradient(180deg, #EAF6FB 0%, #F0F9FF 100%);
+  background-attachment: fixed;
+}
+
+.shop-fluorescent-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; height: 100px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+canvas {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Force transparency for the Electron desktop pet window */
+html.desktop-mode,
+html.desktop-mode body {
+  background: transparent !important;
+}
+
+/* Custom minimal scrollbar for the customizer panel */
+.customize-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.customize-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.customize-scroll::-webkit-scrollbar-thumb {
+  background-color: #c4b3a9;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.customize-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #a68a7e;
+}
+.customize-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c4b3a9 transparent;
+}
