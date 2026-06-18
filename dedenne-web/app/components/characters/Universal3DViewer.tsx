@@ -170,6 +170,7 @@ export default function Universal3DViewer({
   characterSize = 100,
   direction = 1,
   containerClassName,
+  enableRotate = true,
 }: {
   species: string;
   animationState?: string;
@@ -178,6 +179,7 @@ export default function Universal3DViewer({
   characterSize?: number;
   direction?: number;
   containerClassName?: string;
+  enableRotate?: boolean;
 }) {
   return (
     <div className={`w-full h-full relative ${containerClassName || ''}`} style={containerClassName ? {} : { minHeight: '350px' }}>
@@ -188,6 +190,7 @@ export default function Universal3DViewer({
         <ambientLight intensity={0.8} />
         <directionalLight position={[2, 4, 2]} intensity={1.2} />
         <UniversalModel 
+          key={species}
           species={species} 
           animationState={animationState} 
           furColor={furColor} 
@@ -198,6 +201,7 @@ export default function Universal3DViewer({
         <OrbitControls
           enablePan={false}
           enableZoom={false}
+          enableRotate={enableRotate}
           minPolarAngle={Math.PI / 4}
           maxPolarAngle={Math.PI / 1.8}
         />

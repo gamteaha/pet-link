@@ -353,18 +353,20 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
             ) : config?.isShopItem ? (
               <Universal3DViewer 
                 species={config.shopId} 
-                animationState={state === 'walk' ? 'walk' : state === 'startled' ? 'walk' : 'idle'} 
+                animationState={state === 'walk' ? 'walk' : 'idle'} 
                 trackMouse={true} 
                 characterSize={100}
+                enableRotate={false}
                 containerClassName="w-full h-full pointer-events-none"
               />
             ) : config?.type === 'animal' ? (
               <Universal3DViewer
                 species={config.species || 'cat'}
                 furColor={config.furColor}
-                animationState={state === 'walk' ? 'walk' : state === 'startled' ? 'walk' : 'idle'}
+                animationState={state === 'walk' ? 'walk' : 'idle'}
                 trackMouse={true}
                 characterSize={100}
+                enableRotate={false}
                 containerClassName="w-full h-full pointer-events-none"
               />
             ) : (
