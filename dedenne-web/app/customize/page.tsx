@@ -22,15 +22,24 @@ const CATEGORIES = [
 const CAT_FUR_COLORS = [
   { name: '라벤더', value: '#A89BC0' },
   { name: '오렌지', value: '#E8956D' },
-  { name: '흰색',   value: '#F0EDE8' },
-  { name: '검정',   value: '#3D3D3D' },
-  { name: '갈색',   value: '#C8A882' },
-  { name: '회색',   value: '#9B9B9B' },
+  { name: '밝은 회색', value: '#F0EDE8' },
+  { name: '검정', value: '#3D3D3D' },
+  { name: '갈색', value: '#C8A882' },
+  { name: '회색', value: '#9B9B9B' },
+];
+
+const DOG_FUR_COLORS = [
+  { name: '라벤더', value: '#A89BC0' },
+  { name: '오렌지', value: '#E8956D' },
+  { name: '밝은 갈색', value: '#F0EDE8' },
+  { name: '검정', value: '#3D3D3D' },
+  { name: '갈색', value: '#C8A882' },
+  { name: '회색', value: '#9B9B9B' },
 ];
 
 export default function CustomizePage() {
   const [isMounted, setIsMounted] = useState(false);
-  
+
   // Initial state setup with lazy evaluation from localStorage
   const [name, setName] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -228,28 +237,37 @@ export default function CustomizePage() {
         {/* Left Column: Character & Name */}
         <div className="flex flex-col gap-6 w-full md:w-[600px]">
           <div className="bg-[#b8a69e] border-[#4a2e1b] border-[8px] rounded-[3.5rem] p-4 aspect-square relative flex flex-col items-center justify-center shadow-lg overflow-hidden">
-            
+
             {(characterType === 'cat' || characterType === 'dog') ? (
               <Universal3DViewer species={characterType} animationState="idle" furColor={furColor} characterSize={100} />
             ) : (
               <Character3D {...currentConfig} skinColorHex={skinColorHex} hairColorHSL={hairColorHSL} outfitColorHex={outfitColor} backpackColorHex={backpackColor} />
             )}
-            
+
             <div className="absolute bottom-4 left-0 w-full text-center text-[#4a2e1b]/40 font-bold text-sm pointer-events-none">
               마우스를 드래그해서 돌려보세요!
             </div>
           </div>
 
-          <div className="bg-[#faefdf] border-[#4a2e1b] border-[6px] rounded-[2rem] px-8 py-6 flex items-center gap-6 shadow-lg">
-            <span className="text-[#4a2e1b] font-black text-3xl tracking-wide">name:</span>
-            <input
-              type="text"
-              placeholder="your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="bg-transparent border-none outline-none text-[#9c8477] font-bold text-3xl w-full placeholder-[#c4b3a9]"
-            />
+          <div className="bg-[#faefdf] border-[#4a2e1b] border-[6px] rounded-[2rem] px-8 py-6 flex flex-col gap-2 shadow-lg">
+            <div className="flex items-center gap-6">
+              <span className="text-[#4a2e1b] font-black text-3xl tracking-wide">name:</span>
+              <input
+                type="text"
+                placeholder="your-name"
+                value={name}
+                onChange={(e) => {
+                  // 영문(a-z, A-Z), 숫자(0-9), 하이픈(-), 언더스코어(_)만 허용
+                  const filtered = e.target.value.replace(/[^a-zA-Z0-9\-_]/g, '');
+                  setName(filtered);
+                }}
+                maxLength={20}
+                className="bg-transparent border-none outline-none text-[#9c8477] font-bold text-3xl w-full placeholder-[#c4b3a9]"
+              />
+            </div>
+            <span className="text-xs text-[#c4b3a9] pl-1">영문, 숫자, -, _ 만 사용 가능 (최대 20자)</span>
           </div>
+
         </div>
 
         {/* Right Column: Customization Options */}
@@ -305,17 +323,17 @@ export default function CustomizePage() {
 
             {/* Tab Contents */}
             <div className="flex-1 overflow-y-auto pr-2 pb-16 flex flex-col gap-10 text-[#4a2e1b] font-black text-2xl customize-scroll">
-              
+
               {/* Animal Setting */}
               {(activeTab === 'cat-basic' || activeTab === 'dog-basic') && (
                 <div className="flex flex-col gap-6 animate-fade-in">
                   <div className="flex flex-col gap-4">
                     <span className="tracking-wide">털 색상:</span>
                     <div className="flex gap-4 flex-wrap">
-                      {CAT_FUR_COLORS.map(color => (
-                        <button 
-                          key={color.value} 
-                          onClick={() => setFurColor(color.value)} 
+                      {(characterType === 'dog' ? DOG_FUR_COLORS : CAT_FUR_COLORS).map(color => (
+                        <button
+                          key={color.value}
+                          onClick={() => setFurColor(color.value)}
                           className={`px-6 py-3 border-4 border-[#4a2e1b] rounded-2xl flex items-center gap-3 ${furColor === color.value ? 'bg-[#c44933] text-white' : 'bg-[#e2d5c4]'}`}
                         >
                           <div className="w-6 h-6 rounded-full border-2 border-[#4a2e1b]" style={{ backgroundColor: color.value }} />
