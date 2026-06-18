@@ -61,12 +61,30 @@ export default function MyPetsPage() {
       return;
     }
     if (!user) return;
-    const savedPetsStr = localStorage.getItem(`petLink_myPets_${user.id}`);
-    if (savedPetsStr) {
-      setMyPets(JSON.parse(savedPetsStr));
-    } else {
-      setMyPets([]); // 계정이 바뀌었을 때 이전 데이터 초기화
-    }
+    
+    const fetchPets = async () => {
+      const { data, error } = await supabase
+        .from('user_pets')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (!error && data && data.length > 0) {
+        const dbPets = data.map(row => ({
+          ...row.config,
+          db_id: row.id
+        }));
+        setMyPets(dbPets);
+      } else {
+        const savedPetsStr = localStorage.getItem(`petLink_myPets_${user.id}`);
+        if (savedPetsStr) {
+          setMyPets(JSON.parse(savedPetsStr));
+        } else {
+          setMyPets([]); // 계정이 바뀌었을 때 이전 데이터 초기화
+        }
+      }
+    };
+    
+    fetchPets();
 
     if (user) {
       loadInventoryData(selectedPetId);
@@ -228,6 +246,21 @@ export default function MyPetsPage() {
     } finally {
       setIsDownloading((prev) => ({ ...prev, [pet.id]: false }));
     }
+  };
+
+  const handleDeletePet = async (db_id: string | undefined, localId: string) => {
+    if (!confirm("정말 이 펫을 삭제하시겠습니까?")) return;
+    
+    if (db_id) {
+      await supabase.from('user_pets').delete().eq('id', db_id);
+    }
+    
+    const updatedPets = myPets.filter(p => p.id !== localId);
+    setMyPets(updatedPets);
+    if (user) {
+      localStorage.setItem(`petLink_myPets_${user.id}`, JSON.stringify(updatedPets));
+    }
+    showToast("펫이 삭제되었습니다.");
   };
 
   if (isLoading || !user) {
@@ -491,6 +524,13 @@ export default function MyPetsPage() {
                         } ${tutorialStep === 3 && myPets.indexOf(pet) === 0 ? "ring-4 ring-offset-2 ring-[#e07a5f] animate-pulse" : ""}`}
                       >
                         🎒 이 캐릭터의 가방 관리
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleDeletePet(pet.db_id, pet.id)}
+                        className="px-6 py-3 rounded-xl font-bold border-2 border-red-500 text-red-500 hover:bg-red-50 shadow-sm transition-colors flex items-center justify-center gap-2"
+                      >
+                        🗑️ 삭제
                       </button>
                     </div>
                   </div>

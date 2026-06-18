@@ -75,6 +75,23 @@ export default function CartPage() {
       URL.revokeObjectURL(url);
 
       // Save to My Pets for re-download later
+      if (user) {
+        try {
+          const { error: dbError } = await supabase
+            .from('user_pets')
+            .insert({
+              user_id: user.id,
+              pet_name: pet.name || '나의 펫',
+              config: pet,
+            });
+          if (dbError) {
+            console.error("Failed to save pet to DB:", dbError);
+          }
+        } catch (e) {
+          console.error("Supabase insert error:", e);
+        }
+      }
+
       const myPetsKey = user ? `petLink_myPets_${user.id}` : 'petLink_myPets';
       const savedPetsStr = localStorage.getItem(myPetsKey);
       let savedPets: any[] = savedPetsStr ? JSON.parse(savedPetsStr) : [];
@@ -248,16 +265,29 @@ export default function CartPage() {
       let savedPets: any[] = savedPetsStr ? JSON.parse(savedPetsStr) : [];
       let addedNew = false;
       
+      const petsToInsertDB: any[] = [];
+
       combinedCartItems.forEach(item => {
         const isConsumable = ['bread', 'soap', 'towel', 'strawberry'].includes(item.id);
         if (!isConsumable && !savedPets.find(p => p.id === item.id)) {
           savedPets.push(item);
           addedNew = true;
+          petsToInsertDB.push({
+            user_id: user.id,
+            pet_name: item.name || '나의 펫',
+            config: item
+          });
         }
       });
       
       if (addedNew) {
         localStorage.setItem(myPetsKey, JSON.stringify(savedPets));
+        if (petsToInsertDB.length > 0) {
+          const { error: dbError } = await supabase.from('user_pets').insert(petsToInsertDB);
+          if (dbError) {
+            console.error("Failed to save pets to DB on checkout:", dbError);
+          }
+        }
       }
 
       // 5. Clear Cart in Backend & LocalStorage but KEEP UI state for download
