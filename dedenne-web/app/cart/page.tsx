@@ -510,23 +510,6 @@ export default function CartPage() {
                   상점으로 돌아가기
                 </button>
               )}
-                
-              <div className="mt-4 p-4 bg-[rgba(255,255,255,0.4)] rounded-xl border border-[rgba(255,255,255,0.6)]">
-                <p className="text-sm font-bold text-[var(--color-pet-subtext)] mb-2 text-center">👇 PC에서 펫을 실행하려면? 👇</p>
-                <a 
-                  href="/releases/dedenne-desktop-pet.zip"
-                  download
-                  className="w-full py-3 bg-[#4a2e1b] hover:bg-[#331f12] text-white rounded-xl font-bold text-md flex items-center justify-center gap-2 transition-transform hover:scale-105"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  PC 플레이어 다운로드 (.zip)
-                </a>
-                <p className="text-xs text-center text-[var(--color-pet-subtext)] mt-2">
-                  💡 다운로드 후 압축을 풀고 <strong>"데덴네 실행.bat"</strong>을 실행해 주세요!
-                </p>
-              </div>
             </div>
           </div>
         )}
