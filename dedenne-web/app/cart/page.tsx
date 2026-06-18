@@ -269,24 +269,28 @@ export default function CartPage() {
 
       combinedCartItems.forEach(item => {
         const isConsumable = ['bread', 'soap', 'towel', 'strawberry'].includes(item.id);
-        if (!isConsumable && !savedPets.find(p => p.id === item.id)) {
-          savedPets.push(item);
-          addedNew = true;
+        if (!isConsumable) {
+          // 중복 체크 없이 항상 DB upsert (id 기준 덮어쓰기)
           petsToInsertDB.push({
+            id: item.id,
             user_id: user.id,
             pet_name: item.name || '나의 펫',
             config: item
           });
+          if (!savedPets.find(p => p.id === item.id)) {
+            savedPets.push(item);
+            addedNew = true;
+          }
         }
       });
       
-      if (addedNew) {
+      if (petsToInsertDB.length > 0) {
         localStorage.setItem(myPetsKey, JSON.stringify(savedPets));
-        if (petsToInsertDB.length > 0) {
-          const { error: dbError } = await supabase.from('user_pets').insert(petsToInsertDB);
-          if (dbError) {
-            console.error("Failed to save pets to DB on checkout:", dbError);
-          }
+        const { error: dbError } = await supabase
+          .from('user_pets')
+          .upsert(petsToInsertDB, { onConflict: 'id' });
+        if (dbError) {
+          console.error("Failed to save pets to DB on checkout:", dbError);
         }
       }
 

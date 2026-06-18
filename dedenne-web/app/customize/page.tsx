@@ -263,14 +263,14 @@ export default function CustomizePage() {
               사람
             </button>
             <button
-              onClick={() => { setCharacterType('cat'); setActiveTab('cat-basic'); }}
+              onClick={() => { setCharacterType('cat'); setActiveTab('cat-basic'); setFurColor('#E8E8E8'); }}
               className={`flex-1 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 p-4 rounded-[2rem] font-black transition-all ${characterType === 'cat' ? 'bg-[#c44933] text-white shadow-[0_8px_0_#8c3220] scale-105' : 'bg-[#e8dac1] text-[#4a2e1b] hover:bg-[#d4c5b2] shadow-[0_8px_0_#b3a593]'}`}
             >
               <span className="text-3xl md:text-4xl">🐱</span>
               <span className="text-xl md:text-2xl">고양이</span>
             </button>
             <button
-              onClick={() => { setCharacterType('dog'); setActiveTab('dog-basic'); }}
+              onClick={() => { setCharacterType('dog'); setActiveTab('dog-basic'); setFurColor('#D4A574'); }}
               className={`flex-1 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 p-4 rounded-[2rem] font-black transition-all ${characterType === 'dog' ? 'bg-[#c44933] text-white shadow-[0_8px_0_#8c3220] scale-105' : 'bg-[#e8dac1] text-[#4a2e1b] hover:bg-[#d4c5b2] shadow-[0_8px_0_#b3a593]'}`}
             >
               <span className="text-3xl md:text-4xl">🐶</span>
