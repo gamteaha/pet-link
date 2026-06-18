@@ -219,9 +219,14 @@ export default function MyPetsPage() {
       const blob = await response.blob();
 
       const zip = await JSZip.loadAsync(blob);
-      const dataStr = JSON.stringify(pet, null, 2);
+      
+      // 3. Inject the pet's configuration AND inventory as 'character.petlink' inside the zip
+      const petWithInventory = {
+        ...pet,
+        inventory: { ...webInventory }
+      };
+      const dataStr = JSON.stringify(petWithInventory, null, 2);
       zip.file("character.petlink", dataStr);
-
       const content = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(content);
       const a = document.createElement("a");
@@ -233,7 +238,11 @@ export default function MyPetsPage() {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error generating custom pet player zip:", error);
-      const dataStr = JSON.stringify(pet, null, 2);
+      const petWithInventory = {
+        ...pet,
+        inventory: { ...webInventory }
+      };
+      const dataStr = JSON.stringify(petWithInventory, null, 2);
       const fallbackBlob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(fallbackBlob);
       const a = document.createElement("a");
