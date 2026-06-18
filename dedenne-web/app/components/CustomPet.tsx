@@ -270,6 +270,7 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
         onDragStart={() => {
           setIsDragging(true);
           setState("startled");
+          showSpeech("우와!!", 1500);
         }}
         onDragEnd={(e, info) => {
           setIsDragging(false);
@@ -353,7 +354,7 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
             ) : config?.isShopItem ? (
               <Universal3DViewer 
                 species={config.shopId} 
-                animationState={state === 'walk' ? 'walk' : 'idle'} 
+                animationState={state === 'walk' ? 'walk' : state === 'startled' ? 'startled' : 'idle'} 
                 trackMouse={true} 
                 characterSize={100}
                 enableRotate={false}
@@ -363,7 +364,7 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
               <Universal3DViewer
                 species={config.species || 'cat'}
                 furColor={config.furColor}
-                animationState={state === 'walk' ? 'walk' : 'idle'}
+                animationState={state === 'walk' ? 'walk' : state === 'startled' ? 'startled' : 'idle'}
                 trackMouse={true}
                 characterSize={100}
                 enableRotate={false}

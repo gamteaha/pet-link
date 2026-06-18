@@ -25,6 +25,7 @@ const ANIM_MAP: Record<string, Record<string, string>> = {
     eat:     'Idle_Eating',
     click:   'Headbutt',
     jump:    'Jump_Start',
+    startled:'Jump_Start',
   },
   // 그룹 B (조류)
   chick: {
@@ -34,6 +35,7 @@ const ANIM_MAP: Record<string, Record<string, string>> = {
     eat:     'Idle_Peck', // Idle_Eating 없음
     click:   'Attack',    // Headbutt 없음
     jump:    'Run',
+    startled:'Run',
   },
   chicken: {
     idle:    'Idle',
@@ -42,6 +44,7 @@ const ANIM_MAP: Record<string, Record<string, string>> = {
     eat:     'Idle_Peck',
     click:   'Attack',
     jump:    'Run',
+    startled:'Run',
   },
   // 그룹 C (물고기)
   'blue-tang': {
@@ -51,6 +54,7 @@ const ANIM_MAP: Record<string, Record<string, string>> = {
     eat:     'Fish_Armature|Fish_Armature|Swimming_Normal',
     click:   'Fish_Armature|Fish_Armature|Attack',
     jump:    'Fish_Armature|Fish_Armature|Swimming_Impulse',
+    startled:'Fish_Armature|Fish_Armature|Swimming_Impulse',
   },
 };
 
@@ -75,7 +79,23 @@ function UniversalModel({
   const gltfPath = MODEL_MAP[species] || MODEL_MAP['cat'];
   const { scene, animations } = useGLTF(gltfPath);
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene, gltfPath]);
-  const { actions } = useAnimations(animations, group);
+  
+  // 애니메이션 클립 사전 처리 (수직 축 뒤틀림 방지 및 RootMotion 제어)
+  const modifiedAnimations = useMemo(() => {
+    return animations.map(clip => {
+      const newClip = clip.clone();
+      newClip.tracks = newClip.tracks.filter(track => {
+        // Root 본의 rotation이나 position 트랙을 제거하여 지면과 수평 유지 (축 교정)
+        if (track.name.toLowerCase().includes('root') && (track.name.includes('.position') || track.name.includes('.rotation'))) {
+          return false;
+        }
+        return true;
+      });
+      return newClip;
+    });
+  }, [animations]);
+
+  const { actions } = useAnimations(modifiedAnimations, group);
 
   const targetRotationY = useRef(0);
   const animConfig = ANIM_MAP[species] || ANIM_MAP['default'];
