@@ -106,17 +106,13 @@ export default function MyPetsPage() {
           webInv[row.item_id] = row.quantity;
         });
       }
-      setWebInventory({ ...webInv });
-      setOriginalWebInventory({ ...webInv });
-
       // 2. Load Local Pet Bag from Supabase user_pets.config
       const pet = myPets.find(p => p.id === petId);
       if (pet) {
-        // Also keep track of localData structure for UI rendering of affection/level if needed
-        const petConfigData = pet.config || {};
-        setPetData(petConfigData);
+        // pet is already the config object (with db_id)
+        setPetData(pet);
         
-        const bag = petConfigData.inventory || {};
+        const bag = pet.inventory || {};
         const localInv: Record<string, number> = {};
         Object.keys(ITEMS).forEach((id) => {
           localInv[id] = bag[id] || 0;
@@ -176,26 +172,29 @@ export default function MyPetsPage() {
       if (selectedPetId) {
         const petToUpdate = myPets.find(p => p.id === selectedPetId);
         if (petToUpdate) {
+          const { db_id, ...configWithoutDbId } = petToUpdate;
           const newConfig = {
-            ...petToUpdate.config,
+            ...configWithoutDbId,
             inventory: { ...petBag },
             updatedAt: Date.now()
           };
           
-          const { error: petUpdateError } = await supabase
-            .from('user_pets')
-            .update({ config: newConfig })
-            .eq('id', selectedPetId);
-            
-          if (petUpdateError) throw petUpdateError;
+          if (db_id) {
+            const { error: petUpdateError } = await supabase
+              .from('user_pets')
+              .update({ config: newConfig })
+              .eq('id', db_id);
+              
+            if (petUpdateError) throw petUpdateError;
+          }
           
-          const updatedPets = myPets.map(p => p.id === selectedPetId ? { ...p, config: newConfig } : p);
+          const updatedPets = myPets.map(p => p.id === selectedPetId ? { ...newConfig, db_id } : p);
           setMyPets(updatedPets);
           setPetData(newConfig);
           
           // If we happen to be in electron (though rare for my-pets page), also sync local disk
           if (typeof window !== "undefined" && (window as any).electronAPI?.savePetData) {
-            await (window as any).electronAPI.savePetData(newConfig);
+            await (window as any).electronAPI.savePetData({ ...newConfig, db_id });
           }
         }
       }
@@ -223,10 +222,10 @@ export default function MyPetsPage() {
       const zip = await JSZip.loadAsync(blob);
       
       // 3. Inject the pet's configuration AND inventory as 'character.petlink' inside the zip
-      // We take pet.config because it now holds the authoritative inventory, affection, etc.
+      // pet is already the config object augmented with db_id
       const petWithInventory = {
         ...pet,
-        inventory: { ...(pet.config?.inventory || {}) },
+        inventory: { ...(pet.inventory || {}) },
         downloadedAt: Date.now()
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
@@ -244,7 +243,7 @@ export default function MyPetsPage() {
       console.error("Error generating custom pet player zip:", error);
       const petWithInventory = {
         ...pet,
-        inventory: { ...(pet.config?.inventory || {}) },
+        inventory: { ...(pet.inventory || {}) },
         downloadedAt: Date.now()
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
