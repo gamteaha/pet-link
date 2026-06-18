@@ -223,7 +223,8 @@ export default function MyPetsPage() {
       // 3. Inject the pet's configuration AND inventory as 'character.petlink' inside the zip
       const petWithInventory = {
         ...pet,
-        inventory: { ...webInventory }
+        inventory: { ...webInventory },
+        downloadedAt: Date.now()
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
       zip.file("character.petlink", dataStr);
@@ -240,7 +241,8 @@ export default function MyPetsPage() {
       console.error("Error generating custom pet player zip:", error);
       const petWithInventory = {
         ...pet,
-        inventory: { ...webInventory }
+        inventory: { ...webInventory },
+        downloadedAt: Date.now()
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
       const fallbackBlob = new Blob([dataStr], { type: "application/json" });
