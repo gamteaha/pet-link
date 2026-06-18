@@ -109,23 +109,14 @@ export default function MyPetsPage() {
       setWebInventory({ ...webInv });
       setOriginalWebInventory({ ...webInv });
 
-      // 2. Load Local Pet Bag (pet_data.json via Electron or Next.js API)
-      let localData = null;
-      if (petId) {
-        if (typeof window !== "undefined" && (window as any).electronAPI?.loadPetData) {
-          localData = await (window as any).electronAPI.loadPetData();
-        } else {
-          const res = await fetch(`/api/inventory/load?petId=${petId}`);
-          if (res.ok) {
-            localData = await res.json();
-          }
-        }
-      }
-
-      if (localData) {
-        setPetData(localData);
+      // 2. Load Local Pet Bag from Supabase user_pets.config
+      const pet = myPets.find(p => p.id === petId);
+      if (pet) {
+        // Also keep track of localData structure for UI rendering of affection/level if needed
+        const petConfigData = pet.config || {};
+        setPetData(petConfigData);
         
-        const bag = localData.inventory || {};
+        const bag = petConfigData.inventory || {};
         const localInv: Record<string, number> = {};
         Object.keys(ITEMS).forEach((id) => {
           localInv[id] = bag[id] || 0;
@@ -134,6 +125,8 @@ export default function MyPetsPage() {
         setOriginalPetBag({ ...localInv });
       } else {
         setPetData(null);
+        setPetBag({});
+        setOriginalPetBag({});
       }
     } catch (err) {
       console.error("Failed to load inventory data:", err);
@@ -179,23 +172,32 @@ export default function MyPetsPage() {
 
       if (invError) throw invError;
 
-      // 2. Save to Local Pet Bag
-      if (petData) {
-        const newData = {
-          ...petData,
-          inventory: { ...petBag }
-        };
-        
-        if (typeof window !== "undefined" && (window as any).electronAPI?.savePetData) {
-          await (window as any).electronAPI.savePetData(newData);
-        } else {
-          await fetch("/api/inventory/save", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ petId: selectedPetId, petData: newData })
-          });
+      // 2. Save to Supabase user_pets.config
+      if (selectedPetId) {
+        const petToUpdate = myPets.find(p => p.id === selectedPetId);
+        if (petToUpdate) {
+          const newConfig = {
+            ...petToUpdate.config,
+            inventory: { ...petBag },
+            updatedAt: Date.now()
+          };
+          
+          const { error: petUpdateError } = await supabase
+            .from('user_pets')
+            .update({ config: newConfig })
+            .eq('id', selectedPetId);
+            
+          if (petUpdateError) throw petUpdateError;
+          
+          const updatedPets = myPets.map(p => p.id === selectedPetId ? { ...p, config: newConfig } : p);
+          setMyPets(updatedPets);
+          setPetData(newConfig);
+          
+          // If we happen to be in electron (though rare for my-pets page), also sync local disk
+          if (typeof window !== "undefined" && (window as any).electronAPI?.savePetData) {
+            await (window as any).electronAPI.savePetData(newConfig);
+          }
         }
-        setPetData(newData);
       }
 
       setOriginalWebInventory({ ...webInventory });
@@ -221,9 +223,10 @@ export default function MyPetsPage() {
       const zip = await JSZip.loadAsync(blob);
       
       // 3. Inject the pet's configuration AND inventory as 'character.petlink' inside the zip
+      // We take pet.config because it now holds the authoritative inventory, affection, etc.
       const petWithInventory = {
         ...pet,
-        inventory: { ...webInventory },
+        inventory: { ...(pet.config?.inventory || {}) },
         downloadedAt: Date.now()
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
@@ -241,7 +244,7 @@ export default function MyPetsPage() {
       console.error("Error generating custom pet player zip:", error);
       const petWithInventory = {
         ...pet,
-        inventory: { ...webInventory },
+        inventory: { ...(pet.config?.inventory || {}) },
         downloadedAt: Date.now()
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
