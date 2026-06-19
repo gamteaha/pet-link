@@ -49,6 +49,29 @@ export default function CustomizePage() {
     }
     return "";
   });
+
+  const [voiceType, setVoiceType] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const draft = localStorage.getItem('petLink_draftCustomPet');
+      if (draft && draft.includes('voiceType')) return JSON.parse(draft).voiceType || 'ko-KR-Standard-A';
+    }
+    return 'ko-KR-Standard-A'; // Default female voice
+  });
+  const [voicePitch, setVoicePitch] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const draft = localStorage.getItem('petLink_draftCustomPet');
+      if (draft && draft.includes('voicePitch')) return JSON.parse(draft).voicePitch || 0.0;
+    }
+    return 0.0;
+  });
+  const [voiceRate, setVoiceRate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const draft = localStorage.getItem('petLink_draftCustomPet');
+      if (draft && draft.includes('voiceRate')) return JSON.parse(draft).voiceRate || 1.0;
+    }
+    return 1.0;
+  });
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [characterType, setCharacterType] = useState<'human' | 'cat' | 'dog'>('human');
