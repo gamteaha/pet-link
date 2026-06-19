@@ -295,6 +295,26 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
     hideControls: true
   };
 
+  if (config?.shopId === 'dedenne') {
+    return (
+      <>
+        <DedennePet 
+          name={config.name} 
+          level={level} 
+          affection={affection} 
+          onContextMenu={handleContextMenu}
+        />
+        {/* 가방 창 */}
+        {showBag && (
+          <InventoryWindow
+            onClose={() => setShowBag(false)}
+            onUseItem={handleItemUse}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <motion.div
@@ -394,9 +414,7 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
           }}
         >
           <div className="w-full h-full relative pointer-events-none">
-            {config?.shopId === 'dedenne' ? (
-              <DedennePet />
-            ) : config?.isShopItem ? (
+            {config?.isShopItem ? (
               <Universal3DViewer 
                 species={config.shopId} 
                 animationState={state === 'walk' ? 'walk' : state === 'startled' ? 'startled' : 'idle'} 

@@ -31,7 +31,14 @@ const MESSAGES: Record<string, string[]> = {
   owner:   ["데덴넷!! (주인아!!!)", "네넷! 덴네! (여기야 여기!)"],
 };
 
-export default function DedennePet() {
+type DedennePetProps = {
+  name?: string;
+  level?: number;
+  affection?: number;
+  onContextMenu?: (e: React.MouseEvent) => void;
+};
+
+export default function DedennePet({ name, level = 1, affection = 0, onContextMenu }: DedennePetProps = {}) {
   const [isMounted, setIsMounted] = useState(false);
   const [state, setState] = useState<State>("peek");
   const [direction, setDirection] = useState(-1);
@@ -406,6 +413,7 @@ export default function DedennePet() {
           onMouseLeave={() => {
             setIsHovered(false);
           }}
+          onContextMenu={onContextMenu}
         >
           <AnimatePresence>
             {message && (
@@ -517,6 +525,66 @@ export default function DedennePet() {
               </motion.div>
             )}
           </motion.div>
+
+          {/* 이름표 + 호감도 바 */}
+          {name && (
+            <div
+              style={{
+                position: 'absolute',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                top: `-80px`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 4,
+                pointerEvents: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {/* 이름표 */}
+              <div
+                style={{
+                  background: 'rgba(255,255,255,0.92)',
+                  fontWeight: 900,
+                  color: '#4a2e1b',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  padding: `6px 14px`,
+                  borderRadius: `999px`,
+                  fontSize: `16px`,
+                  border: `3px solid #4a2e1b`,
+                }}
+              >
+                {name}
+              </div>
+              {/* 호감도 바 */}
+              <div style={{
+                background: 'rgba(255,255,255,0.88)',
+                backdropFilter: 'blur(6px)',
+                border: '1.5px solid #e8c9a0',
+                borderRadius: 999,
+                padding: '3px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                fontSize: 10,
+                fontFamily: "'Malgun Gothic', sans-serif",
+              }}>
+                <span style={{ fontWeight: 700, color: '#4a2e1b' }}>Lv.{level}</span>
+                <div style={{ width: 60, height: 6, background: '#f0e0cc', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${affection}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #ff8fab, #ff6b9d)',
+                    borderRadius: 999,
+                    transition: 'width 0.4s ease',
+                  }} />
+                </div>
+                <span style={{ color: '#a68a7e', fontWeight: 600 }}>❤️{affection}</span>
+              </div>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
