@@ -42,12 +42,13 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
 
     const customAnimalSupported = ['cat', 'dog'];
     const shopAnimalSupported = ['pig', 'chick', 'chicken', 'horse'];
+    const species = config?.species || config?.shopId;
 
-    if (config?.type && customAnimalSupported.includes(config.type)) {
+    if (species && customAnimalSupported.includes(species)) {
       if (config?.voice?.name && (config.voice.name.startsWith('real-') || config.voice.name.startsWith('mech-'))) {
         const soundPrefix = config.voice.name.startsWith('mech') ? 'mech' : 'real';
         const soundIndex = Math.floor(Math.random() * 3) + 1;
-        const soundPath = `/sounds/${soundPrefix}-${config.type}/${soundPrefix}-${config.type}-${soundIndex}.mp3`;
+        const soundPath = `/sounds/${soundPrefix}-${species}/${soundPrefix}-${species}-${soundIndex}.mp3`;
         try {
           const audio = new Audio(soundPath);
           audio.play().catch(e => console.error("Animal sound play failed:", e));
@@ -55,9 +56,9 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
           console.error('Failed to play animal sound:', err);
         }
       }
-    } else if (config?.isShopItem && config?.shopId && shopAnimalSupported.includes(config.shopId)) {
+    } else if (species && shopAnimalSupported.includes(species)) {
       const soundIndex = Math.floor(Math.random() * 3) + 1;
-      const soundPath = `/sounds/real-${config.shopId}/real-${config.shopId}-${soundIndex}.mp3`;
+      const soundPath = `/sounds/real-${species}/real-${species}-${soundIndex}.mp3`;
       try {
         const audio = new Audio(soundPath);
         audio.play().catch(e => console.error("Shop animal sound play failed:", e));
