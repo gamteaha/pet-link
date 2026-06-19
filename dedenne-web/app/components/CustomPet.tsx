@@ -35,10 +35,30 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
   const speechTimer = useRef<NodeJS.Timeout | null>(null);
   const lastPatDate = useRef<string>("");
 
-  const showSpeech = (msg: string, duration = 2000) => {
+  const showSpeech = async (msg: string, duration = 2000) => {
     setSpeechBubble(msg);
     if (speechTimer.current) clearTimeout(speechTimer.current);
     speechTimer.current = setTimeout(() => setSpeechBubble(null), duration);
+
+    if (config?.voice) {
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: msg,
+            voiceConfig: config.voice
+          })
+        });
+        const data = await res.json();
+        if (data.audioContent) {
+          const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+          audio.play().catch(e => console.error("Audio play failed:", e));
+        }
+      } catch (err) {
+        console.error('Failed to play TTS:', err);
+      }
+    }
   };
 
   useEffect(() => {
