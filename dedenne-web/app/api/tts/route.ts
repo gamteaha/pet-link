@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing Google TTS API Key" }, { status: 500, headers: corsHeaders });
     }
 
+    // Strip emojis so TTS doesn't read them aloud (e.g. "sparkling heart")
+    const cleanText = text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+
     // voiceConfig defaults
     const name = voiceConfig?.name || "ko-KR-Standard-A";
     const languageCode = "ko-KR";
@@ -30,7 +33,7 @@ export async function POST(req: NextRequest) {
     const speakingRate = voiceConfig?.speakingRate !== undefined ? voiceConfig.speakingRate : 1.0;
 
     const requestBody = {
-      input: { text },
+      input: { text: cleanText || text }, // fallback to original if completely empty
       voice: { languageCode, name },
       audioConfig: {
         audioEncoding: "MP3",
