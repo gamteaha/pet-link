@@ -152,10 +152,12 @@ function UniversalModel({
     
     if (species !== 'blue-tang') {
       if (isMoving) {
-        const targetY = direction === 1 ? Math.PI : 0;
+        // direction: 1 (right), -1 (left)
+        const targetY = direction === 1 ? Math.PI / 2 : -Math.PI / 2;
         group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetY, 0.1);
       } else {
-        group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, Math.PI / 2, 0.1);
+        // Idle: face the camera (forward)
+        group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, 0, 0.1);
       }
     }
 
