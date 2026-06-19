@@ -173,8 +173,7 @@ export default function CustomizePage() {
 
   React.useEffect(() => {
     // Ensure voiceType is appropriate for the selected characterType
-    const soundSupportedAnimals = ['cat', 'dog', 'pig', 'chick', 'chicken', 'horse'];
-    if (soundSupportedAnimals.includes(characterType)) {
+    if (characterType === 'cat' || characterType === 'dog') {
       if (!voiceType.startsWith('real-') && !voiceType.startsWith('mech-')) {
         setVoiceType(`real-${characterType}`);
       } else if (!voiceType.endsWith(characterType)) {
@@ -545,7 +544,7 @@ export default function CustomizePage() {
 
               {activeTab === 'voice' && (
                 <div className="flex flex-col gap-8">
-                  {['cat', 'dog', 'pig', 'chick', 'chicken', 'horse'].includes(characterType) ? (
+                  {characterType === 'cat' || characterType === 'dog' ? (
                     <>
                       <div className="flex flex-col gap-4">
                         <span className="tracking-wide">울음소리 모드 (Voice Mode):</span>

@@ -40,8 +40,10 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
     if (speechTimer.current) clearTimeout(speechTimer.current);
     speechTimer.current = setTimeout(() => setSpeechBubble(null), duration);
 
-    const soundSupportedAnimals = ['cat', 'dog', 'pig', 'chick', 'chicken', 'horse'];
-    if (config?.type && soundSupportedAnimals.includes(config.type)) {
+    const customAnimalSupported = ['cat', 'dog'];
+    const shopAnimalSupported = ['pig', 'chick', 'chicken', 'horse'];
+
+    if (config?.type && customAnimalSupported.includes(config.type)) {
       if (config?.voice?.name && (config.voice.name.startsWith('real-') || config.voice.name.startsWith('mech-'))) {
         const soundPrefix = config.voice.name.startsWith('mech') ? 'mech' : 'real';
         const soundIndex = Math.floor(Math.random() * 3) + 1;
@@ -52,6 +54,15 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
         } catch (err) {
           console.error('Failed to play animal sound:', err);
         }
+      }
+    } else if (config?.isShopItem && config?.shopId && shopAnimalSupported.includes(config.shopId)) {
+      const soundIndex = Math.floor(Math.random() * 3) + 1;
+      const soundPath = `/sounds/real-${config.shopId}/real-${config.shopId}-${soundIndex}.mp3`;
+      try {
+        const audio = new Audio(soundPath);
+        audio.play().catch(e => console.error("Shop animal sound play failed:", e));
+      } catch (err) {
+        console.error('Failed to play shop animal sound:', err);
       }
     } else if (config?.voice) {
       try {
