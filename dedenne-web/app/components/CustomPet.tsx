@@ -40,7 +40,8 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
     if (speechTimer.current) clearTimeout(speechTimer.current);
     speechTimer.current = setTimeout(() => setSpeechBubble(null), duration);
 
-    if (config?.type === 'cat' || config?.type === 'dog') {
+    const soundSupportedAnimals = ['cat', 'dog', 'pig', 'chick', 'chicken', 'horse'];
+    if (config?.type && soundSupportedAnimals.includes(config.type)) {
       if (config?.voice?.name && (config.voice.name.startsWith('real-') || config.voice.name.startsWith('mech-'))) {
         const soundPrefix = config.voice.name.startsWith('mech') ? 'mech' : 'real';
         const soundIndex = Math.floor(Math.random() * 3) + 1;
