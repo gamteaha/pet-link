@@ -14,6 +14,7 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
   const [activeTab, setActiveTab] = useState<"inventory" | "orders">("inventory");
   const [inventory, setInventory] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [cheeseLogs, setCheeseLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient();
 
@@ -59,6 +60,15 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
       .order("created_at", { ascending: false });
 
     if (ordData) setOrders(ordData);
+
+    // 3. 치즈 로그 가져오기
+    const { data: logData } = await supabase
+      .from("cheese_logs")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (logData) setCheeseLogs(logData);
 
     setIsLoading(false);
   };
@@ -110,7 +120,17 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
                   : "border-transparent text-[#a68a7e] hover:text-[#4a2e1b]"
               }`}
             >
-              주문 내역
+              현금 결제 내역
+            </button>
+            <button
+              onClick={() => setActiveTab("cheeseLogs" as any)}
+              className={`px-4 py-3 font-bold text-sm border-b-4 transition-colors ${
+                activeTab === "cheeseLogs"
+                  ? "border-[#e07a5f] text-[#e07a5f]"
+                  : "border-transparent text-[#a68a7e] hover:text-[#4a2e1b]"
+              }`}
+            >
+              치즈 사용 내역
             </button>
           </div>
 
@@ -190,6 +210,58 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
                           </div>
                         </div>
                       ))
+                    )}
+                  </div>
+                )}
+
+                {/* 치즈 소비 내역 탭 */}
+                {activeTab === "cheeseLogs" && (
+                  <div className="space-y-4">
+                    {cheeseLogs.length === 0 ? (
+                      <div className="text-center py-12 text-[#a68a7e] font-bold bg-white rounded-2xl border border-[#e8dac1]">
+                        치즈 사용 내역이 없습니다.
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-2xl border-2 border-[#e8dac1] overflow-hidden">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-[#e8dac1] bg-[#f8eedb]">
+                              <th className="p-3 font-black text-[#4a2e1b]">일시</th>
+                              <th className="p-3 font-black text-[#4a2e1b]">유형</th>
+                              <th className="p-3 font-black text-[#4a2e1b]">사유</th>
+                              <th className="p-3 font-black text-[#4a2e1b]">변동</th>
+                              <th className="p-3 font-black text-[#4a2e1b]">잔액</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {cheeseLogs.map((log) => (
+                              <tr key={log.id} className="border-b border-[#e8dac1]/30 hover:bg-gray-50">
+                                <td className="p-3 text-sm font-bold text-gray-500">
+                                  {new Date(log.created_at).toLocaleString()}
+                                </td>
+                                <td className="p-3">
+                                  <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                    log.action === "earn" || log.action === "admin_grant" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"
+                                  }`}>
+                                    {log.action}
+                                  </span>
+                                </td>
+                                <td className="p-3 font-bold text-[#4a2e1b] text-sm">
+                                  {log.reason}
+                                </td>
+                                <td className={`p-3 font-black ${
+                                  log.action === "earn" || log.action === "admin_grant" ? "text-blue-600" : "text-red-600"
+                                }`}>
+                                  {log.action === "earn" || log.action === "admin_grant" ? "+" : "-"}{log.amount}
+                                </td>
+                                <td className="p-3 font-bold text-gray-700">
+                                  {log.balance_after}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </div>
                 )}

@@ -25,7 +25,6 @@ export default function AdminUsersPage() {
     // 1. 프로필 가져오기
     let query = supabase.from("profiles").select("*").order("created_at", { ascending: false });
     
-    // DB 단 검색 (디스플레이 이름)
     if (searchQuery.trim() !== "") {
       query = query.ilike("display_name", `%${searchQuery}%`);
     }
@@ -38,8 +37,6 @@ export default function AdminUsersPage() {
       return;
     }
 
-    // 2. 각 유저별 대표 펫과 주문 통계 가져오기 (클라이언트 매핑)
-    // 실제 서비스 규모가 커지면 서버사이드 API(RPC)나 뷰를 사용해야 하지만, 여기서는 프론트엔드 Join으로 처리
     const userIds = profiles.map(p => p.id);
     
     const { data: orders } = await supabase
@@ -48,33 +45,41 @@ export default function AdminUsersPage() {
       .in("user_id", userIds)
       .eq("status", "completed");
 
-    // 대표 펫 매핑을 위해 user_inventory 조회
+    // 대표 펫 매핑을 위해 user_pets 조회
     const { data: userPets } = await supabase
-      .from("user_inventory")
-      .select("user_id, item_id")
+      .from("user_pets")
+      .select("user_id, config")
+      .in("user_id", userIds);
+
+    // 아이템 구매 횟수를 위해 cheese_logs의 spend 조회
+    const { data: cheeseLogs } = await supabase
+      .from("cheese_logs")
+      .select("user_id")
       .in("user_id", userIds)
-      .in("item_id", ["dedenne", "cat", "human"]);
+      .eq("action", "spend");
 
     // 클라이언트 사이드 매핑
     let finalUsers = profiles.map(profile => {
       // 결제 통계 매핑 (원화 결제 1000원 이상만 합산)
       const userOrders = orders?.filter(o => o.user_id === profile.id) || [];
-      const orderCount = userOrders.length;
       const krwOrders = userOrders.filter(o => (o.total_price || 0) >= 1000);
       const totalSpent = krwOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
 
-      const firstPet = userPets?.find(p => p.user_id === profile.id);
-      const mainPet = firstPet ? firstPet.item_id : "dedenne";
+      // 아이템 구매 횟수 (치즈 소비 횟수)
+      const spendCount = cheeseLogs?.filter(l => l.user_id === profile.id).length || 0;
+
+      // 대표 펫
+      const userPet = userPets?.find(p => p.user_id === profile.id);
+      const mainPet = userPet?.config?.shopId || userPet?.config?.species || "dedenne";
 
       return {
         ...profile,
         main_pet: mainPet,
-        order_count: orderCount,
+        order_count: spendCount,
         total_spent: totalSpent
       };
     });
 
-    // 이메일 검색을 위한 클라이언트 필터링 (DB 단 ilike에 이메일 조건이 안 들어갔을 경우 보완)
     if (searchQuery.trim() !== "") {
       const lowerQ = searchQuery.toLowerCase();
       finalUsers = finalUsers.filter(u => 
@@ -156,6 +161,13 @@ export default function AdminUsersPage() {
                       <div className="inline-flex w-10 h-10 bg-[#f8eedb] rounded-full items-center justify-center text-xl shadow-sm border border-[#e8dac1]">
                         {user.main_pet === "dedenne" ? "🐭" 
                          : user.main_pet === "cat" ? "🐱" 
+                         : user.main_pet === "dog" ? "🐶"
+                         : user.main_pet === "pig" ? "🐷"
+                         : user.main_pet === "horse" ? "🐴"
+                         : user.main_pet === "chick" ? "🐥"
+                         : user.main_pet === "chicken" ? "🐔"
+                         : user.main_pet === "raccoon" ? "🦝"
+                         : user.main_pet === "blue-tang" ? "🐟"
                          : user.main_pet === "human" ? "🧑‍🌾" 
                          : "🐾"}
                       </div>
