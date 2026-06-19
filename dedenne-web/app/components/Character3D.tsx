@@ -524,8 +524,8 @@ export default function Character3D(props: Character3DProps) {
   const scale = props.characterSize ? props.characterSize / 100 : 1;
 
   return (
-    <div className="w-full h-full absolute inset-0 flex items-center justify-center">
-      <div style={{ width: `${100 * scale}%`, height: `${100 * scale}%`, transition: 'width 0.3s, height 0.3s' }}>
+    <div className="w-full h-full absolute inset-0 flex items-end justify-center pb-6">
+      <div style={{ width: `${100 * scale}%`, height: `${100 * scale}%`, transition: 'width 0.3s, height 0.3s', transformOrigin: 'bottom center' }}>
         <Canvas camera={{ position: [0, 0.4, 5.5], fov: 45 }}>
           <ambientLight intensity={0.6} />
           <directionalLight position={[5, 5, 5]} intensity={1} castShadow />

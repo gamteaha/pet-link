@@ -236,7 +236,7 @@ export default function CustomizePage() {
 
         {/* Left Column: Character & Name */}
         <div className="flex flex-col gap-6 w-full md:w-[600px]">
-          <div className="bg-[#b8a69e] border-[#4a2e1b] border-[8px] rounded-[3.5rem] p-4 aspect-square relative flex flex-col items-center justify-center shadow-lg overflow-hidden">
+          <div className="bg-[#b8a69e] border-[#4a2e1b] border-[8px] rounded-[3.5rem] p-4 aspect-square relative flex flex-col items-center justify-center shadow-lg">
 
             {(characterType === 'cat' || characterType === 'dog') ? (
               <Universal3DViewer species={characterType} animationState="idle" furColor={furColor} characterSize={100} />
