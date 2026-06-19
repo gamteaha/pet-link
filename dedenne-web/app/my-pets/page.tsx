@@ -552,7 +552,8 @@ export default function MyPetsPage() {
                     </div>
                   </div>
                 </div>
-              );
+              </div>
+            );
             })
           )}
         </div>
