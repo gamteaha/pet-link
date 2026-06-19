@@ -69,17 +69,25 @@ export function CheeseProvider({ children }: { children: ReactNode }) {
 
   const addCheese = async (amount: number) => {
     if (!user) return false;
-    const newBalance = cheeseBalance + amount;
     
     try {
-      // DB 업데이트 시도
+      // 1. 최신 잔액 조회
+      const { data, error: fetchErr } = await supabase
+        .from('profiles')
+        .select('cheese_balance')
+        .eq('id', user.id)
+        .single();
+        
+      const currentBalance = data?.cheese_balance || 0;
+      const newBalance = currentBalance + amount;
+      
+      // 2. DB 업데이트
       const { error } = await supabase
         .from('profiles')
         .update({ cheese_balance: newBalance })
         .eq('id', user.id);
         
       if (error) {
-        // Fallback
         localStorage.setItem(`cheese_${user.id}`, newBalance.toString());
       }
       setCheeseBalance(newBalance);
@@ -91,18 +99,28 @@ export function CheeseProvider({ children }: { children: ReactNode }) {
   };
 
   const spendCheese = async (amount: number) => {
-    if (!user || cheeseBalance < amount) return false;
-    const newBalance = cheeseBalance - amount;
+    if (!user) return false;
     
     try {
-      // DB 업데이트 시도
+      // 1. 최신 잔액 조회
+      const { data, error: fetchErr } = await supabase
+        .from('profiles')
+        .select('cheese_balance')
+        .eq('id', user.id)
+        .single();
+        
+      const currentBalance = data?.cheese_balance || 0;
+      if (currentBalance < amount) return false;
+      
+      const newBalance = currentBalance - amount;
+      
+      // 2. DB 업데이트
       const { error } = await supabase
         .from('profiles')
         .update({ cheese_balance: newBalance })
         .eq('id', user.id);
         
       if (error) {
-        // Fallback
         localStorage.setItem(`cheese_${user.id}`, newBalance.toString());
       }
       setCheeseBalance(newBalance);
