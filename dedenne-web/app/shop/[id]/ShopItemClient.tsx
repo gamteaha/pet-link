@@ -173,19 +173,35 @@ export default function ShopItemClient({ id }: { id: string }) {
         throw new Error();
       }
 
+      const newPetConfig = {
+        id: item.id,
+        name: item.name,
+        shopId: item.id,
+        isShopItem: true,
+        emoji: item.emoji,
+        price: item.price,
+        inventory: {}
+      };
+
+      const { data: insertedPet, error: insertPetError } = await supabase
+        .from('user_pets')
+        .insert({
+          user_id: user.id,
+          config: newPetConfig
+        })
+        .select()
+        .single();
+
+      if (insertPetError) {
+        console.error("Failed to insert pet to db:", insertPetError);
+      }
+
       // 내 펫 목록에 추가 (계정별 분리)
       const myPetsKey = `petLink_myPets_${user.id}`;
       const savedPetsStr = localStorage.getItem(myPetsKey);
       let savedPets: any[] = savedPetsStr ? JSON.parse(savedPetsStr) : [];
       if (!savedPets.find(p => p.id === item.id)) {
-        savedPets.push({
-          id: item.id,
-          name: item.name,
-          shopId: item.id,
-          isShopItem: true,
-          emoji: item.emoji,
-          price: item.price
-        });
+        savedPets.push(newPetConfig);
         localStorage.setItem(myPetsKey, JSON.stringify(savedPets));
       }
 

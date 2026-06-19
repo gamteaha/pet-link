@@ -65,25 +65,45 @@ export default function MyPetsPage() {
     if (!user) return;
     
     const fetchPets = async () => {
+      let combinedPets: any[] = [];
       const { data, error } = await supabase
         .from('user_pets')
         .select('*')
         .order('created_at', { ascending: false });
         
-      if (!error && data && data.length > 0) {
-        const dbPets = data.map(row => ({
+      if (!error && data) {
+        combinedPets = data.map(row => ({
           ...row.config,
           db_id: row.id
         }));
-        setMyPets(dbPets);
-      } else {
-        const savedPetsStr = localStorage.getItem(`petLink_myPets_${user.id}`);
-        if (savedPetsStr) {
-          setMyPets(JSON.parse(savedPetsStr));
-        } else {
-          setMyPets([]); // 계정이 바뀌었을 때 이전 데이터 초기화
+      }
+
+      // Merge with localStorage pets (like previously bought shop items)
+      const savedPetsStr = localStorage.getItem(`petLink_myPets_${user.id}`);
+      if (savedPetsStr) {
+        const localPets = JSON.parse(savedPetsStr);
+        for (const localPet of localPets) {
+          // If local pet doesn't exist in DB, insert it!
+          if (!combinedPets.find(p => p.id === localPet.id)) {
+            const { data: insertedPet, error: insertError } = await supabase
+              .from('user_pets')
+              .insert({
+                user_id: user.id,
+                config: { ...localPet, inventory: localPet.inventory || {} }
+              })
+              .select()
+              .single();
+              
+            if (!insertError && insertedPet) {
+              combinedPets.push({ ...localPet, inventory: localPet.inventory || {}, db_id: insertedPet.id });
+            } else {
+              combinedPets.push(localPet); // fallback
+            }
+          }
         }
       }
+
+      setMyPets(combinedPets);
     };
     
     fetchPets();
