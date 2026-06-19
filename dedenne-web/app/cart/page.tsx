@@ -73,33 +73,6 @@ export default function CartPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
-      // Save to My Pets for re-download later
-      if (user) {
-        try {
-          const { error: dbError } = await supabase
-            .from('user_pets')
-            .insert({
-              user_id: user.id,
-              pet_name: pet.name || '나의 펫',
-              config: pet,
-            });
-          if (dbError) {
-            console.error("Failed to save pet to DB:", dbError);
-          }
-        } catch (e) {
-          console.error("Supabase insert error:", e);
-        }
-      }
-
-      const myPetsKey = user ? `petLink_myPets_${user.id}` : 'petLink_myPets';
-      const savedPetsStr = localStorage.getItem(myPetsKey);
-      let savedPets: any[] = savedPetsStr ? JSON.parse(savedPetsStr) : [];
-      // To avoid duplicates, check by pet.id
-      if (!savedPets.find(p => p.id === pet.id)) {
-        savedPets.push(pet);
-        localStorage.setItem(myPetsKey, JSON.stringify(savedPets));
-      }
     } catch (error) {
       console.error("Error generating custom pet player zip:", error);
       // Fallback: just download the petlink JSON if zip generation fails
@@ -243,7 +216,54 @@ export default function CartPage() {
         console.error("Inventory upsert failed:", invError);
       }
 
-      // 3.5. [로컬 파이썬 앱 연동] Next.js 서버에서 파이썬 앱의 json 파일에 직접 수량을 더해줍니다.
+      // 4. Create User Pets for non-consumable characters
+      const petInserts: any[] = [];
+      const newLocalPets: any[] = [];
+      
+      combinedCartItems.forEach(item => {
+        const itemId = item.shopId || item.id || 'custom';
+        const isConsumable = ['bread', 'soap', 'towel', 'strawberry'].includes(itemId);
+        
+        if (!isConsumable) {
+          const qty = getQuantity(item.id);
+          for(let i=0; i<qty; i++) {
+            // Give each pet a unique timestamp ID so they don't overwrite each other if quantity > 1
+            const uniqueId = item.id + (i > 0 ? i : 0);
+            const petConfig = { ...item, id: uniqueId };
+            
+            petInserts.push({
+              user_id: user.id,
+              pet_name: item.name || '나의 펫',
+              config: petConfig
+            });
+            newLocalPets.push(petConfig);
+          }
+        }
+      });
+
+      if (petInserts.length > 0) {
+        const { error: petInsertError } = await supabase
+          .from('user_pets')
+          .insert(petInserts);
+          
+        if (petInsertError) {
+          console.error("Failed to insert pets:", petInsertError);
+        }
+        
+        // Also save to localStorage for fallback
+        const myPetsKey = user ? `petLink_myPets_${user.id}` : 'petLink_myPets';
+        const savedPetsStr = localStorage.getItem(myPetsKey);
+        let savedPets: any[] = savedPetsStr ? JSON.parse(savedPetsStr) : [];
+        
+        newLocalPets.forEach(pet => {
+          if (!savedPets.find(p => p.id === pet.id)) {
+            savedPets.push(pet);
+          }
+        });
+        localStorage.setItem(myPetsKey, JSON.stringify(savedPets));
+      }
+
+      // 5. [로컬 파이썬 앱 연동] Next.js 서버에서 파이썬 앱의 json 파일에 직접 수량을 더해줍니다.
       const syncItems = combinedCartItems.map(item => {
         const itemId = item.shopId || item.id || 'custom';
         const isConsumable = ['bread', 'soap', 'towel', 'strawberry'].includes(itemId);
