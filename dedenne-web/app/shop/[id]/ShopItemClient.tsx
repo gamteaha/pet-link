@@ -46,7 +46,7 @@ const SHOP_ITEMS: Record<string, any> = {
   },
   raccoon: {
     id: "raccoon",
-    name: "너구리 (Raccoon)",
+    name: "너구리 (Raccoon Dog)",
     description: "장난꾸러기 숲속 너구리입니다. 화면 가장자리에서 나타나 쓰레기통을 뒤지는 걸 좋아해요.",
     price: 50,
     type: "3d",
