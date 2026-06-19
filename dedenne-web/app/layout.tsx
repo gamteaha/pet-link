@@ -48,6 +48,11 @@ export default function RootLayout({
               {modal}
               <WebTutorial />
               <AdminGate />
+              <footer className="w-full bg-[rgba(255,255,255,0.4)] border-t border-[rgba(255,255,255,0.6)] py-6 mt-auto text-center text-sm font-bold text-[var(--color-pet-subtext)] z-10 relative backdrop-blur-sm">
+                <p>Developer: 202601664 김태희</p>
+                <p>Email: <a href="mailto:gamteaha@gmail.com" className="hover:text-[var(--color-pet-point)] underline">gamteaha@gmail.com</a></p>
+                <p className="mt-2 opacity-70">© 2026 Pet-Link. All rights reserved.</p>
+              </footer>
             </CartProvider>
           </CheeseProvider>
         </AuthProvider>
