@@ -9,6 +9,7 @@ import JSZip from "jszip";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { createClient } from "../../utils/supabase/client";
+import ManualModal from "./components/ManualModal";
 
 function getSkinColorHex(value: number) {
   const r = Math.round(255 - (255 - 74) * (value / 100));
@@ -35,6 +36,8 @@ export default function MyPetsPage() {
   // Inventory Transfer States
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [webInventory, setWebInventory] = useState<Record<string, number>>({});
+  const [originalWebInventory, setOriginalWebInventory] = useState<Record<string, number>>({});
+  const [showManual, setShowManual] = useState(false);
   const [petBag, setPetBag] = useState<Record<string, number>>({});
   const [petData, setPetData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -52,7 +55,6 @@ export default function MyPetsPage() {
   }, []);
 
   // Original items mapping to track if changed
-  const [originalWebInventory, setOriginalWebInventory] = useState<Record<string, number>>({});
   const [originalPetBag, setOriginalPetBag] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -502,8 +504,9 @@ export default function MyPetsPage() {
                     </p>
                     
                     <div className="flex flex-col gap-2">
-                      <button 
-                        onClick={() => {
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
                           if (pet.isShopItem) {
                             // 기본 펫은 정적 파일 다운로드
                             const a = document.createElement("a");
@@ -525,6 +528,16 @@ export default function MyPetsPage() {
                         {isDownloading[pet.id] ? "패키징 및 빌드 중..." : pet.isShopItem ? "PC 펫 플레이어 다운로드 (.zip)" : "PC 펫 플레이어 재다운로드 (.zip)"}
                       </button>
 
+                      <button 
+                        onClick={() => setShowManual(true)}
+                        className="px-4 py-3 bg-[#f8eedb] hover:bg-[#e8dac1] text-[#8c4a23] border-2 border-[#e8dac1] rounded-xl font-bold flex items-center gap-2 shadow-sm transition-transform hover:scale-105"
+                        title="설치 및 사용 가이드 보기"
+                      >
+                        💡 가이드 보기
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2 mt-2">
                       <button 
                         data-tutorial-target="bag-btn"
                         onClick={() => {
@@ -562,6 +575,10 @@ export default function MyPetsPage() {
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl bg-[#4a2e1b] text-white text-sm animate-fade-in">
           {toastMsg}
         </div>
+      )}
+      {/* Manual Modal */}
+      {showManual && (
+        <ManualModal onClose={() => setShowManual(false)} />
       )}
     </div>
   );

@@ -1,0 +1,107 @@
+"use client";
+
+import React, { useState } from 'react';
+import { DownloadCloud, PlayCircle, MousePointerClick, HeartHandshake, ChevronRight, ChevronLeft, X } from 'lucide-react';
+
+interface ManualModalProps {
+  onClose: () => void;
+}
+
+const steps = [
+  {
+    icon: <DownloadCloud className="w-16 h-16 text-[#e07a5f]" />,
+    title: "1. PC 펫 플레이어 다운로드 및 압축 해제",
+    desc: "나의 펫 목록에서 [PC 펫 플레이어 다운로드] 버튼을 눌러 ZIP 파일을 다운로드하고, 원하는 폴더에 압축을 풀어주세요."
+  },
+  {
+    icon: <PlayCircle className="w-16 h-16 text-[#81b29a]" />,
+    title: "2. 실행 파일(run_pet.bat) 더블클릭",
+    desc: "압축을 푼 폴더 안에 있는 'run_pet.bat' 파일을 더블클릭합니다. 처음 실행 시에는 펫을 띄우기 위한 1~2분 정도의 설치 과정이 자동으로 진행됩니다."
+  },
+  {
+    icon: <MousePointerClick className="w-16 h-16 text-[#f2cc8f]" />,
+    title: "3. 펫 우클릭으로 메뉴 열기",
+    desc: "바탕화면에 귀여운 펫이 나타났나요? 펫을 마우스 '우클릭'하면 내 가방 열기, 쓰다듬기 등 다양한 상호작용 메뉴가 나타납니다."
+  },
+  {
+    icon: <HeartHandshake className="w-16 h-16 text-[#e07a5f]" />,
+    title: "4. 가방에서 아이템 꺼내 쓰기",
+    desc: "메뉴에서 '내 가방'을 열어 펫에게 밥을 주거나 씻겨주세요! 아이템을 사용하면 펫의 호감도(♥)가 쑥쑥 오릅니다!"
+  }
+];
+
+export default function ManualModal({ onClose }: ManualModalProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Dimmed Background */}
+      <div 
+        className="absolute inset-0 bg-[#3d2314]/60 backdrop-blur-sm" 
+        onClick={onClose}
+      />
+      
+      {/* Modal Content */}
+      <div className="relative bg-[#fdf6e3] w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border-4 border-[#e8dac1] animate-in fade-in zoom-in duration-300">
+        
+        {/* Header */}
+        <div className="bg-[#e07a5f] p-6 text-white text-center relative">
+          <h2 className="text-2xl font-black tracking-wide">💡 PC 펫 설치 및 사용 가이드</h2>
+          <button 
+            onClick={onClose}
+            className="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+        </div>
+
+        {/* Carousel Content */}
+        <div className="p-10 flex flex-col items-center text-center min-h-[320px] justify-center">
+          <div className="bg-white w-32 h-32 rounded-full shadow-md flex items-center justify-center mb-8 transform transition-transform hover:scale-110 duration-300">
+            {steps[currentStep].icon}
+          </div>
+          <h3 className="text-2xl font-bold text-[#4a2e1b] mb-4">{steps[currentStep].title}</h3>
+          <p className="text-lg text-[#8c4a23] leading-relaxed max-w-lg">
+            {steps[currentStep].desc}
+          </p>
+        </div>
+
+        {/* Navigation */}
+        <div className="bg-white/50 p-6 flex items-center justify-between border-t border-[#e8dac1]">
+          <button 
+            onClick={prevStep}
+            disabled={currentStep === 0}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-[#e07a5f] bg-white border-2 border-[#e07a5f] hover:bg-[#fff0f5] disabled:opacity-30 disabled:hover:bg-white transition-all"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            이전
+          </button>
+
+          {/* Dots */}
+          <div className="flex gap-2">
+            {steps.map((_, idx) => (
+              <div 
+                key={idx} 
+                className={`w-3 h-3 rounded-full transition-colors duration-300 ${
+                  currentStep === idx ? 'bg-[#c44933] w-8' : 'bg-[#e8dac1]'
+                }`}
+              />
+            ))}
+          </div>
+
+          <button 
+            onClick={currentStep === steps.length - 1 ? onClose : nextStep}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-[#e07a5f] border-2 border-[#c44933] hover:bg-[#c44933] transition-all"
+          >
+            {currentStep === steps.length - 1 ? '완료' : '다음'}
+            {currentStep !== steps.length - 1 && <ChevronRight className="w-5 h-5" />}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
