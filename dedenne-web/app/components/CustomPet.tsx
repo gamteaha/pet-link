@@ -40,7 +40,19 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
     if (speechTimer.current) clearTimeout(speechTimer.current);
     speechTimer.current = setTimeout(() => setSpeechBubble(null), duration);
 
-    if (config?.voice) {
+    if (config?.type === 'cat' || config?.type === 'dog') {
+      if (config?.voice?.name && (config.voice.name.startsWith('real-') || config.voice.name.startsWith('mech-'))) {
+        const soundPrefix = config.voice.name.startsWith('mech') ? 'mech' : 'real';
+        const soundIndex = Math.floor(Math.random() * 3) + 1;
+        const soundPath = `/sounds/${soundPrefix}-${config.type}/${soundPrefix}-${config.type}-${soundIndex}.mp3`;
+        try {
+          const audio = new Audio(soundPath);
+          audio.play().catch(e => console.error("Animal sound play failed:", e));
+        } catch (err) {
+          console.error('Failed to play animal sound:', err);
+        }
+      }
+    } else if (config?.voice) {
       try {
         const res = await fetch('/api/tts', {
           method: 'POST',

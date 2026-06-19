@@ -170,6 +170,22 @@ export default function CustomizePage() {
     }
     return 1;
   });
+
+  React.useEffect(() => {
+    // Ensure voiceType is appropriate for the selected characterType
+    if (characterType === 'cat' || characterType === 'dog') {
+      if (!voiceType.startsWith('real-') && !voiceType.startsWith('mech-')) {
+        setVoiceType(`real-${characterType}`);
+      } else if (!voiceType.endsWith(characterType)) {
+        // e.g. switched from cat to dog, but voice is real-cat
+        setVoiceType(voiceType.startsWith('mech') ? `mech-${characterType}` : `real-${characterType}`);
+      }
+    } else {
+      if (voiceType.startsWith('real-') || voiceType.startsWith('mech-')) {
+        setVoiceType('ko-KR-Standard-A');
+      }
+    }
+  }, [characterType, voiceType]);
   const [glassesType, setGlassesType] = useState(() => {
     if (typeof window !== 'undefined') {
       const draft = localStorage.getItem('petLink_draftCustomPet');
@@ -528,87 +544,130 @@ export default function CustomizePage() {
 
               {activeTab === 'voice' && (
                 <div className="flex flex-col gap-8">
-                  <div className="flex flex-col gap-4">
-                    <span className="tracking-wide">목소리 유형 (Voice Type):</span>
-                    <div className="flex gap-4 flex-wrap">
-                      {[
-                        { id: 'ko-KR-Standard-A', label: '여성 1 (발랄한)' },
-                        { id: 'ko-KR-Standard-B', label: '여성 2 (차분한)' },
-                        { id: 'ko-KR-Standard-C', label: '남성 1 (차분한)' },
-                        { id: 'ko-KR-Standard-D', label: '남성 2 (활기찬)' }
-                      ].map(t => (
-                        <button 
-                          key={t.id} 
-                          onClick={() => setVoiceType(t.id)} 
-                          className={`px-6 py-3 border-4 border-[#4a2e1b] rounded-2xl ${voiceType === t.id ? 'bg-[#c44933] text-white' : 'bg-[#e2d5c4]'}`}
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col gap-4">
-                    <span className="tracking-wide">목소리 높낮이 (Pitch): <span className="font-bold text-[#c44933]">{voicePitch.toFixed(1)}</span></span>
-                    <input 
-                      type="range" min="-20" max="20" step="1" 
-                      value={voicePitch} 
-                      onChange={(e) => setVoicePitch(Number(e.target.value))} 
-                      className="w-full h-4 rounded-full appearance-none outline-none bg-[#e2d5c4]" 
-                    />
-                    <div className="flex justify-between text-sm text-gray-500 font-bold px-2">
-                      <span>-20 (아주 낮음)</span>
-                      <span>0 (기본)</span>
-                      <span>+20 (아주 높음)</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-4">
-                    <span className="tracking-wide">말하기 속도 (Speed): <span className="font-bold text-[#c44933]">{voiceRate.toFixed(1)}x</span></span>
-                    <input 
-                      type="range" min="0.5" max="2" step="0.1" 
-                      value={voiceRate} 
-                      onChange={(e) => setVoiceRate(Number(e.target.value))} 
-                      className="w-full h-4 rounded-full appearance-none outline-none bg-[#e2d5c4]" 
-                    />
-                    <div className="flex justify-between text-sm text-gray-500 font-bold px-2">
-                      <span>느리게</span>
-                      <span>보통</span>
-                      <span>빠르게</span>
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={async () => {
-                      if (isPlayingVoice) return;
-                      setIsPlayingVoice(true);
-                      try {
-                        const res = await fetch('/api/tts', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            text: `안녕? 난 ${name || '네 펫'}이야! 반가워!`,
-                            voiceConfig: { name: voiceType, pitch: voicePitch, speakingRate: voiceRate }
-                          })
-                        });
-                        const data = await res.json();
-                        if (data.audioContent) {
-                          const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+                  {characterType === 'cat' || characterType === 'dog' ? (
+                    <>
+                      <div className="flex flex-col gap-4">
+                        <span className="tracking-wide">울음소리 모드 (Voice Mode):</span>
+                        <div className="flex gap-4 flex-wrap">
+                          {[
+                            { id: `real-${characterType}`, label: '🐾 리얼 사운드' },
+                            { id: `mech-${characterType}`, label: '🤖 기계음' }
+                          ].map(t => (
+                            <button 
+                              key={t.id} 
+                              onClick={() => setVoiceType(t.id)} 
+                              className={`px-6 py-3 border-4 border-[#4a2e1b] rounded-2xl ${voiceType === t.id ? 'bg-[#c44933] text-white' : 'bg-[#e2d5c4]'}`}
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => {
+                          if (isPlayingVoice) return;
+                          setIsPlayingVoice(true);
+                          const soundPrefix = voiceType.startsWith('mech') ? 'mech' : 'real';
+                          const soundIndex = Math.floor(Math.random() * 3) + 1;
+                          const soundPath = `/sounds/${soundPrefix}-${characterType}/${soundPrefix}-${characterType}-${soundIndex}.mp3`;
+                          const audio = new Audio(soundPath);
                           audio.onended = () => setIsPlayingVoice(false);
-                          audio.play();
-                        } else {
-                          setIsPlayingVoice(false);
-                          alert('미리듣기에 실패했습니다. API 설정을 확인해주세요.');
-                        }
-                      } catch (err) {
-                        setIsPlayingVoice(false);
-                        console.error(err);
-                      }
-                    }}
-                    className="mt-4 px-8 py-4 bg-[#4a2e1b] text-white font-black rounded-2xl shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2"
-                  >
-                    {isPlayingVoice ? '🎵 재생 중...' : '🔊 목소리 미리듣기'}
-                  </button>
+                          audio.play().catch(e => {
+                            console.error(e);
+                            setIsPlayingVoice(false);
+                          });
+                        }}
+                        className="mt-4 px-8 py-4 bg-[#4a2e1b] text-white font-black rounded-2xl shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                      >
+                        {isPlayingVoice ? '🎵 재생 중...' : '🔊 울음소리 랜덤 미리듣기'}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex flex-col gap-4">
+                        <span className="tracking-wide">목소리 유형 (Voice Type):</span>
+                        <div className="flex gap-4 flex-wrap">
+                          {[
+                            { id: 'ko-KR-Standard-A', label: '여성 1 (발랄한)' },
+                            { id: 'ko-KR-Standard-B', label: '여성 2 (차분한)' },
+                            { id: 'ko-KR-Standard-C', label: '남성 1 (차분한)' },
+                            { id: 'ko-KR-Standard-D', label: '남성 2 (활기찬)' }
+                          ].map(t => (
+                            <button 
+                              key={t.id} 
+                              onClick={() => setVoiceType(t.id)} 
+                              className={`px-6 py-3 border-4 border-[#4a2e1b] rounded-2xl ${voiceType === t.id ? 'bg-[#c44933] text-white' : 'bg-[#e2d5c4]'}`}
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-4">
+                        <span className="tracking-wide">목소리 높낮이 (Pitch): <span className="font-bold text-[#c44933]">{voicePitch.toFixed(1)}</span></span>
+                        <input 
+                          type="range" min="-20" max="20" step="1" 
+                          value={voicePitch} 
+                          onChange={(e) => setVoicePitch(Number(e.target.value))} 
+                          className="w-full h-4 rounded-full appearance-none outline-none bg-[#e2d5c4]" 
+                        />
+                        <div className="flex justify-between text-sm text-gray-500 font-bold px-2">
+                          <span>-20 (아주 낮음)</span>
+                          <span>0 (기본)</span>
+                          <span>+20 (아주 높음)</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-4">
+                        <span className="tracking-wide">말하기 속도 (Speed): <span className="font-bold text-[#c44933]">{voiceRate.toFixed(1)}x</span></span>
+                        <input 
+                          type="range" min="0.5" max="2" step="0.1" 
+                          value={voiceRate} 
+                          onChange={(e) => setVoiceRate(Number(e.target.value))} 
+                          className="w-full h-4 rounded-full appearance-none outline-none bg-[#e2d5c4]" 
+                        />
+                        <div className="flex justify-between text-sm text-gray-500 font-bold px-2">
+                          <span>느리게</span>
+                          <span>보통</span>
+                          <span>빠르게</span>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={async () => {
+                          if (isPlayingVoice) return;
+                          setIsPlayingVoice(true);
+                          try {
+                            const res = await fetch('/api/tts', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                text: `안녕? 난 ${name || '네 펫'}이야! 반가워!`,
+                                voiceConfig: { name: voiceType, pitch: voicePitch, speakingRate: voiceRate }
+                              })
+                            });
+                            const data = await res.json();
+                            if (data.audioContent) {
+                              const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+                              audio.onended = () => setIsPlayingVoice(false);
+                              audio.play();
+                            } else {
+                              setIsPlayingVoice(false);
+                              alert('미리듣기에 실패했습니다. API 설정을 확인해주세요.');
+                            }
+                          } catch (err) {
+                            setIsPlayingVoice(false);
+                            console.error(err);
+                          }
+                        }}
+                        className="mt-4 px-8 py-4 bg-[#4a2e1b] text-white font-black rounded-2xl shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                      >
+                        {isPlayingVoice ? '🎵 재생 중...' : '🔊 목소리 미리듣기'}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
