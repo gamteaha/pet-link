@@ -83,7 +83,21 @@ export default function OrderRow({ order, onStatusChange }: OrderRowProps) {
                   {isLoadingItems ? (
                     <div className="text-sm font-bold text-gray-500">불러오는 중...</div>
                   ) : orderItems.length === 0 ? (
-                    <div className="text-sm font-bold text-gray-500">품목 내역이 없습니다.</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="bg-white p-4 rounded-xl border border-[#e8dac1] flex items-center gap-4">
+                        <div className="w-12 h-12 bg-[#f8eedb] rounded-lg flex items-center justify-center text-2xl">
+                          🧀
+                        </div>
+                        <div>
+                          <p className="font-bold text-[#4a2e1b]">치즈 충전</p>
+                          <div className="flex gap-2 text-xs text-[#a68a7e] font-bold mt-1">
+                            <span className="uppercase">CHARGE</span>
+                            <span>•</span>
+                            <span>₩ {order.total_price.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {orderItems.map((item) => (

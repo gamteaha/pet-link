@@ -21,6 +21,7 @@ export default function AdminOrdersPage() {
     let query = supabase
       .from("orders")
       .select("*")
+      .gte("total_price", 1000)
       .order("ordered_at", { ascending: false });
 
     // Apply DB-level filters if possible
@@ -98,7 +99,7 @@ export default function AdminOrdersPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
           <h2 className="text-3xl font-black mb-2 text-[#4a2e1b]">결제 및 매출 내역 조회</h2>
-          <p className="text-[#a68a7e] font-medium">유저들의 아이템 구매 현황을 상세히 조회합니다.</p>
+          <p className="text-[#a68a7e] font-medium">유저들의 치즈 충전(실제 결제) 내역을 상세히 조회합니다.</p>
         </div>
         <button
           onClick={handleExportCsv}
