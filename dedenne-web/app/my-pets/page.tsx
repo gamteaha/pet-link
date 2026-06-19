@@ -506,19 +506,7 @@ export default function MyPetsPage() {
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-2">
                         <button 
-                          onClick={() => {
-                          if (pet.isShopItem) {
-                            // 기본 펫은 정적 파일 다운로드
-                            const a = document.createElement("a");
-                            a.href = "/releases/dedenne-desktop-pet.zip";
-                            a.download = "dedenne-desktop-pet.zip";
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                          } else {
-                            handleDownloadPetData(pet);
-                          }
-                        }}
+                          onClick={() => handleDownloadPetData(pet)}
                         disabled={isDownloading[pet.id]}
                         className="px-6 py-3 bg-[#8c4a23] hover:bg-[#733c1c] disabled:bg-gray-400 text-white rounded-xl font-bold flex items-center gap-2 w-max shadow-sm transition-transform hover:scale-105 disabled:scale-100"
                       >
