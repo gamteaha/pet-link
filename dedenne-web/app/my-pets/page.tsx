@@ -297,7 +297,7 @@ export default function MyPetsPage() {
         </Link>
       </div>
 
-      <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-8">
+      <div className="w-full max-w-[1400px] flex flex-col lg:flex-row gap-8">
         
         {/* Left Column: Inventory Transfer System */}
         <div className="w-full lg:w-1/2 flex flex-col gap-6">

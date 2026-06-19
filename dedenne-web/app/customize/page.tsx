@@ -273,7 +273,7 @@ export default function CustomizePage() {
         {/* Right Column: Customization Options */}
         <div className="flex flex-col gap-4 w-full md:w-[700px]">
           {/* Main Type Toggles */}
-          <div className="flex bg-[#faefdf] border-[#4a2e1b] border-[6px] rounded-3xl p-2 shadow-lg self-center md:self-start w-full md:w-auto gap-2 mb-2">
+          <div className="flex bg-[#faefdf] border-[#4a2e1b] border-[6px] rounded-3xl p-2 shadow-lg w-full gap-2 mb-2">
             <button
               onClick={() => { setCharacterType('human'); setActiveTab('basic'); }}
               className={`flex-1 md:px-8 py-3 rounded-2xl font-black text-xl transition-all ${characterType === 'human' ? 'bg-[#c44933] text-white shadow-md' : 'text-[#4a2e1b] hover:bg-[#e2d5c4]'}`}
