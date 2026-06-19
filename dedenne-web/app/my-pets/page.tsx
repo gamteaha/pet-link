@@ -106,6 +106,9 @@ export default function MyPetsPage() {
           webInv[row.item_id] = row.quantity;
         });
       }
+      setWebInventory({ ...webInv });
+      setOriginalWebInventory({ ...webInv });
+      
       // 2. Load Local Pet Bag from Supabase user_pets.config
       const pet = myPets.find(p => p.id === petId);
       if (pet) {
