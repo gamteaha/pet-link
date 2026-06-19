@@ -9,23 +9,28 @@ interface ManualModalProps {
 
 const steps = [
   {
+    icon: <DownloadCloud className="w-16 h-16 text-[#81b29a]" />,
+    title: "1. 필수 프로그램(Node.js) 설치",
+    desc: "PC 플레이어는 웹 기술로 만들어져 있습니다! 만약 컴퓨터에 Node.js가 없다면 구동되지 않으니, nodejs.org에서 LTS 버전을 먼저 설치해주세요."
+  },
+  {
     icon: <DownloadCloud className="w-16 h-16 text-[#e07a5f]" />,
-    title: "1. PC 펫 플레이어 다운로드 및 압축 해제",
+    title: "2. PC 펫 플레이어 다운로드 및 압축 해제",
     desc: "나의 펫 목록에서 [PC 펫 플레이어 다운로드] 버튼을 눌러 ZIP 파일을 다운로드하고, 원하는 폴더에 압축을 풀어주세요."
   },
   {
-    icon: <PlayCircle className="w-16 h-16 text-[#81b29a]" />,
-    title: "2. 실행 파일(run_pet.bat) 더블클릭",
+    icon: <PlayCircle className="w-16 h-16 text-[#f2cc8f]" />,
+    title: "3. 실행 파일(run_pet.bat) 더블클릭",
     desc: "압축을 푼 폴더 안에 있는 'run_pet.bat' 파일을 더블클릭합니다. 처음 실행 시에는 펫을 띄우기 위한 1~2분 정도의 설치 과정이 자동으로 진행됩니다."
   },
   {
     icon: <MousePointerClick className="w-16 h-16 text-[#f2cc8f]" />,
-    title: "3. 펫 우클릭으로 메뉴 열기",
+    title: "4. 펫 우클릭으로 메뉴 열기",
     desc: "바탕화면에 귀여운 펫이 나타났나요? 펫을 마우스 '우클릭'하면 내 가방 열기, 쓰다듬기 등 다양한 상호작용 메뉴가 나타납니다."
   },
   {
     icon: <HeartHandshake className="w-16 h-16 text-[#e07a5f]" />,
-    title: "4. 가방에서 아이템 꺼내 쓰기",
+    title: "5. 가방에서 아이템 꺼내 쓰기",
     desc: "메뉴에서 '내 가방'을 열어 펫에게 밥을 주거나 씻겨주세요! 아이템을 사용하면 펫의 호감도(♥)가 쑥쑥 오릅니다!"
   }
 ];
