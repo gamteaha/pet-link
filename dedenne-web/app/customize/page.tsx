@@ -273,10 +273,10 @@ export default function CustomizePage() {
         </Link>
       </div>
 
-      <div className="max-w-[1400px] w-full flex flex-col md:flex-row gap-12 relative z-10 items-center justify-center mt-16 md:mt-0">
+      <div className="max-w-[1500px] w-full flex flex-col lg:flex-row gap-8 lg:gap-12 relative z-10 items-center justify-center mt-16 md:mt-0">
 
         {/* Left Column: Character & Name */}
-        <div className="flex flex-col gap-6 w-full md:w-[600px]">
+        <div className="flex flex-col gap-6 w-full lg:w-[450px] shrink-0">
           <div className="bg-[#b8a69e] border-[#4a2e1b] border-[8px] rounded-[3.5rem] p-4 aspect-square relative flex flex-col items-center justify-center shadow-lg">
 
             {(characterType === 'cat' || characterType === 'dog') ? (
@@ -312,7 +312,7 @@ export default function CustomizePage() {
         </div>
 
         {/* Right Column: Customization Options */}
-        <div className="flex flex-col gap-4 w-full md:w-[700px]">
+        <div className="flex flex-col gap-4 w-full lg:flex-1 max-w-[900px]">
           {/* Main Type Toggles */}
           <div className="flex bg-[#faefdf] border-[#4a2e1b] border-[6px] rounded-3xl p-2 shadow-lg w-full gap-2 mb-2">
             <button
@@ -358,7 +358,7 @@ export default function CustomizePage() {
                 <button
                   key={cat.id}
                   onClick={() => setActiveTab(cat.id)}
-                  className={`px-6 py-3 rounded-2xl font-bold text-2xl border-[4px] border-[#4a2e1b] whitespace-nowrap transition-colors ${activeTab === cat.id ? 'bg-[#c44933] text-white shadow-inner' : 'bg-[#e2d5c4] text-[#4a2e1b] hover:bg-[#d4c5b2]'}`}
+                  className={`px-4 py-2 md:px-6 md:py-3 rounded-2xl font-bold text-xl md:text-2xl border-[4px] border-[#4a2e1b] whitespace-nowrap transition-colors ${activeTab === cat.id ? 'bg-[#c44933] text-white shadow-inner' : 'bg-[#e2d5c4] text-[#4a2e1b] hover:bg-[#d4c5b2]'}`}
                 >
                   {cat.label}
                 </button>
