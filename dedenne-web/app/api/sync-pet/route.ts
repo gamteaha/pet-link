@@ -20,12 +20,18 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // petId from desktop is the numeric timestamp. The real UUID is in petData.db_id
+    const realDbId = petData.db_id;
+    if (!realDbId) {
+      return NextResponse.json({ error: "Missing db_id in petData" }, { status: 400 });
+    }
 
     // 1. Fetch the existing pet
     const { data: pet, error: fetchError } = await supabase
       .from('user_pets')
       .select('config')
-      .eq('id', petId)
+      .eq('id', realDbId)
       .single();
 
     if (fetchError || !pet) {
@@ -47,7 +53,7 @@ export async function POST(req: NextRequest) {
     const { error: updateError } = await supabase
       .from('user_pets')
       .update({ config: newConfig })
-      .eq('id', petId);
+      .eq('id', realDbId);
 
     if (updateError) {
       throw updateError;
