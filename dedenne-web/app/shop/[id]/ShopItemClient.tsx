@@ -370,9 +370,29 @@ export default function ShopItemClient({ id }: { id: string }) {
       )}
       
       {/* 화면 미리보기용 CustomPet */}
-      {isPreviewing && (
-        <CustomPet previewConfig={{ type: 'animal', species: item.id }} />
-      )}
+      {isPreviewing && item.id === 'dedenne' ? (
+        <DedennePet />
+      ) : isPreviewing && item.id === 'human' ? (
+        <CustomPet previewConfig={{ 
+          type: 'human',
+          name: "마을 주민", 
+          frontHairIndex: 2, 
+          backHairIndex: 1, 
+          bodyType: 1, 
+          eyeType: 1, 
+          mouthType: 2, 
+          blushType: 2, 
+          outfitStyle: 1, 
+          hatType: 1,
+          skinToneValue: 1,
+          hairColorValue: 30,
+          hairLightnessValue: 50,
+          outfitColor: "#4287f5",
+          backpackColor: "#ff9999"
+        }} />
+      ) : isPreviewing ? (
+        <CustomPet previewConfig={{ isShopItem: true, shopId: item.id }} />
+      ) : null}
       {showCartModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
           <div className="glass-card !bg-white p-8 max-w-sm w-full mx-4 shadow-2xl flex flex-col items-center animate-fade-in text-center">
