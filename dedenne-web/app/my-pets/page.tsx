@@ -36,26 +36,10 @@ export default function MyPetsPage() {
   // Inventory Transfer States
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [webInventory, setWebInventory] = useState<Record<string, number>>({});
-  const [originalWebInventory, setOriginalWebInventory] = useState<Record<string, number>>({});
   const [showManual, setShowManual] = useState(false);
-  const [petBag, setPetBag] = useState<Record<string, number>>({});
   const [petData, setPetData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-
-  // 튜토리얼 스텝 수신 (WebTutorial에서 broadcast)
-  const [tutorialStep, setTutorialStep] = useState<number>(() => {
-    if (typeof window === 'undefined') return 0;
-    return (window as any).__tutorialStep || 0;
-  });
-  useEffect(() => {
-    const handler = (e: Event) => setTutorialStep((e as CustomEvent).detail);
-    window.addEventListener('tutorialStepChange', handler);
-    return () => window.removeEventListener('tutorialStepChange', handler);
-  }, []);
-
-  // Original items mapping to track if changed
-  const [originalPetBag, setOriginalPetBag] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -118,31 +102,25 @@ export default function MyPetsPage() {
       const pet = myPets.find(p => p.id === petConfigId);
       const petDbId = pet?.db_id;
 
-      // 1. 웹 창고 = user_inventory.quantity, 캐릭터 가방 = user_inventory.bag_quantity
+      // 1. 공용 가방 (user_inventory.quantity)
       const { data: invData } = await supabase
         .from('user_inventory')
-        .select('item_id, quantity, bag_quantity')
+        .select('item_id, quantity')
         .eq('user_id', user?.id)
         .in('item_id', Object.keys(ITEMS));
 
       const webInv: Record<string, number> = {};
-      const bagInv: Record<string, number> = {};
       Object.keys(ITEMS).forEach(k => { 
         webInv[k] = 0; 
-        bagInv[k] = 0;
       });
 
       if (invData) {
         invData.forEach(row => { 
           webInv[row.item_id] = row.quantity || 0; 
-          bagInv[row.item_id] = row.bag_quantity || 0;
         });
       }
 
       setWebInventory({ ...webInv });
-      setOriginalWebInventory({ ...webInv });
-      setPetBag({ ...bagInv });
-      setOriginalPetBag({ ...bagInv });
 
       setPetData(pet || null);
     } catch (err) {
@@ -153,51 +131,6 @@ export default function MyPetsPage() {
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3000);
-  };
-
-  const moveItem = (itemId: string, direction: 'to-bag' | 'to-web') => {
-    if (direction === 'to-bag') {
-      const currentWeb = webInventory[itemId] || 0;
-      if (currentWeb > 0) {
-        setWebInventory(prev => ({ ...prev, [itemId]: currentWeb - 1 }));
-        setPetBag(prev => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
-      }
-    } else {
-      const currentBag = petBag[itemId] || 0;
-      if (currentBag > 0) {
-        setPetBag(prev => ({ ...prev, [itemId]: currentBag - 1 }));
-        setWebInventory(prev => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
-      }
-    }
-  };
-
-  const handleSaveInventory = async () => {
-    if (!user) return;
-
-    setIsSaving(true);
-    try {
-      // 1. 웹 창고 및 캐릭터 가방 동시 저장 → user_inventory
-      const inventoryUpdates = Object.keys(ITEMS).map(itemId => ({
-        user_id: user.id,
-        item_id: itemId,
-        quantity: webInventory[itemId] || 0,
-        bag_quantity: petBag[itemId] || 0,
-        updated_at: new Date().toISOString()
-      }));
-      const { error: invError } = await supabase
-        .from('user_inventory')
-        .upsert(inventoryUpdates, { onConflict: 'user_id, item_id' });
-      if (invError) throw invError;
-
-      setOriginalWebInventory({ ...webInventory });
-      setOriginalPetBag({ ...petBag });
-      showToast("저장 완료! 데스크톱 앱 가방에 실시간 반영됩니다 🎉");
-    } catch (err) {
-      console.error("Save error:", err);
-      showToast("저장 중 오류가 발생했습니다.");
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   // Realtime: 데스크톱 앱에서 아이템 사용 시 웹에서도 즉시 반영
@@ -214,18 +147,13 @@ export default function MyPetsPage() {
       }, (payload: any) => {
         const newRow = payload.new;
         if (newRow && ITEMS[newRow.item_id] !== undefined) {
-          setPetBag(prev => ({ ...prev, [newRow.item_id]: newRow.bag_quantity || 0 }));
-          setOriginalPetBag(prev => ({ ...prev, [newRow.item_id]: newRow.bag_quantity || 0 }));
+          setWebInventory(prev => ({ ...prev, [newRow.item_id]: newRow.quantity || 0 }));
         }
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user, selectedPetId, myPets, supabase]);
-
-  const hasUnsavedChanges =
-    JSON.stringify(webInventory) !== JSON.stringify(originalWebInventory) ||
-    JSON.stringify(petBag) !== JSON.stringify(originalPetBag);
+  }, [user, supabase]);
 
   const handleDownloadPetData = async (pet: any) => {
     setIsDownloading((prev) => ({ ...prev, [pet.id]: true }));
@@ -315,93 +243,38 @@ export default function MyPetsPage() {
           <div className="bg-white rounded-[2rem] p-8 shadow-sm border-2 border-[#e8dac1]">
             <div className="flex justify-between items-end mb-6">
               <div>
-                <h2 className="text-3xl font-black flex items-center gap-2">📦 내 창고 연동</h2>
-                <p className="text-[#a68a7e] font-bold mt-2">상점에서 구매한 아이템을 캐릭터 가방으로 옮겨주세요.</p>
+                <h2 className="text-3xl font-black flex items-center gap-2">🎒 내 아이템 (공용 가방)</h2>
+                <p className="text-[#a68a7e] font-bold mt-2">상점에서 구매한 아이템들이 모든 펫에게 공유됩니다.</p>
               </div>
-              <button
-                onClick={handleSaveInventory}
-                disabled={!hasUnsavedChanges || isSaving}
-                className={`px-6 py-3 rounded-xl font-black text-lg transition-colors shadow-sm flex items-center gap-2 ${
-                  hasUnsavedChanges
-                    ? "bg-[#c44933] hover:bg-[#a33926] text-white"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                } ${tutorialStep === 4 ? "ring-4 ring-offset-2 ring-[#e07a5f] animate-pulse" : ""}`}
-              >
-                {isSaving ? "저장 중..." : "💾 변경사항 저장"}
-              </button>
             </div>
 
             <div className="flex flex-col gap-4">
-                <div className="flex gap-4 items-stretch mt-4">
-                  
-                  {/* Web Warehouse */}
-                  <div className="flex-1 bg-[#fdf6e3] rounded-2xl p-4 border-[3px] border-[#d0b8a0]">
-                    <h3 className="text-center font-black text-xl mb-4 pb-2 border-b-2 border-[#e8dac1]">웹 창고 ☁️</h3>
-                    <div className="space-y-3">
-                      {Object.entries(ITEMS).map(([id, info]) => {
-                        const qty = webInventory[id] || 0;
-                        return (
-                          <div key={id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-[#e8dac1]">
-                            <div className="flex items-center gap-2">
-                              <span className="text-2xl">{info.emoji}</span>
-                              <div>
-                                <p className="font-bold text-sm leading-tight">{info.name}</p>
-                                <p className="text-[#a68a7e] text-xs">{qty}개</p>
-                              </div>
-                            </div>
-                            <button
-                               onClick={() => moveItem(id, 'to-bag')}
-                              disabled={qty <= 0}
-                              className={`w-8 h-8 flex items-center justify-center bg-[#8c4a23] hover:bg-[#733c1c] disabled:bg-[#e8dac1] disabled:text-[#a68a7e] text-white rounded-lg font-black transition-colors ${tutorialStep === 4 && qty > 0 ? "ring-4 ring-offset-1 ring-[#e07a5f] animate-pulse" : ""}`}
-                            >
-                              ▶
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Character Bag */}
-                  <div className="flex-1 bg-[#fdf6e3] rounded-2xl p-4 border-[3px] border-[#d0b8a0]">
-                    <h3 className="text-center font-black text-xl mb-1">캐릭터 가방 🎒</h3>
-                    <p className="text-center text-xs text-[#a68a7e] mb-3 pb-2 border-b-2 border-[#e8dac1] font-bold">(모든 펫 공유)</p>
-                    <div className="space-y-3">
-                      {Object.entries(ITEMS).map(([id, info]) => {
-                        const qty = petBag[id] || 0;
-                        return (
-                          <div key={id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-[#e8dac1]">
-                            <button
-                              onClick={() => moveItem(id, 'to-web')}
-                              disabled={qty <= 0}
-                              className="w-8 h-8 flex items-center justify-center bg-[#a68a7e] hover:bg-[#8c4a23] disabled:bg-[#e8dac1] disabled:text-[#a68a7e] text-white rounded-lg font-black transition-colors"
-                            >
-                              ◀
-                            </button>
-                            <div className="flex items-center gap-2 flex-row-reverse text-right">
-                              <span className="text-2xl">{info.emoji}</span>
-                              <div>
-                                <p className="font-bold text-sm leading-tight">{info.name}</p>
-                                <p className="text-[#a68a7e] text-xs">{qty}개</p>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Helpful Note for Updates */}
-                <div className="mt-4 bg-[#fff4e6] p-4 rounded-xl border border-[#ffd8a8] flex gap-3 items-center">
-                  <span className="text-2xl">💡</span>
-                  <p className="text-sm text-[#d9480f] font-bold">
-                    아이템을 저장했는데 데스크톱 펫의 가방에 나타나지 않나요?<br/>
-                    <span className="font-normal text-[#e8590c]">목록에서 [PC 펫 플레이어 재다운로드]를 눌러 펫 앱을 최신 버전으로 업데이트 해보세요!</span>
-                  </p>
+              <div className="bg-[#fdf6e3] rounded-2xl p-6 border-[3px] border-[#d0b8a0]">
+                <div className="space-y-3">
+                  {Object.entries(ITEMS).map(([id, info]) => {
+                    const qty = webInventory[id] || 0;
+                    return (
+                      <div key={id} className="flex items-center gap-4 bg-white p-4 rounded-xl border border-[#e8dac1]">
+                        <span className="text-4xl">{info.emoji}</span>
+                        <div>
+                          <p className="font-bold text-lg leading-tight">{info.name}</p>
+                          <p className="text-[#e07a5f] font-black">{qty}개</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+
+              {/* Helpful Note for Updates */}
+              <div className="mt-4 bg-[#fff4e6] p-4 rounded-xl border border-[#ffd8a8] flex gap-3 items-center">
+                <span className="text-2xl">💡</span>
+                <p className="text-sm text-[#d9480f] font-bold">
+                  방금 구매한 아이템이 데스크톱 펫의 가방에 나타나지 않나요?<br/>
+                  <span className="font-normal text-[#e8590c]">목록에서 [PC 펫 플레이어 재다운로드]를 눌러 펫 앱을 최신 버전으로 업데이트 해보세요!</span>
+                </p>
+              </div>
+            </div>
             </div>
           </div>
 
