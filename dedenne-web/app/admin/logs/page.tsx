@@ -21,7 +21,6 @@ type ActivityItem = {
 };
 
 export default function AdminLogsPage() {
-  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 

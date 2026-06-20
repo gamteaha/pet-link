@@ -132,6 +132,8 @@ export default function AdminStatsPage() {
 
   const COLORS = ["#e07a5f", "#f2cc8f", "#81b29a", "#3d405b", "#d4c5b2"];
 
+  const isAllUnknown = categoryData.length === 0 || (categoryData.length === 1 && categoryData[0].name === "미분류");
+
   if (isLoading) {
     return <div className="p-12 text-center text-xl font-bold text-[#a68a7e]">정산 데이터를 분석 중입니다...</div>;
   }
@@ -174,7 +176,7 @@ export default function AdminStatsPage() {
       {/* 2. 차트 영역 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* 월별 차트 */}
-        <div className="lg:col-span-2 bg-white rounded-[2rem] border-2 border-[#e8dac1] p-6 shadow-sm">
+        <div className={`${isAllUnknown ? "lg:col-span-3" : "lg:col-span-2"} bg-white rounded-[2rem] border-2 border-[#e8dac1] p-6 shadow-sm`}>
           <h3 className="text-xl font-black text-[#4a2e1b] mb-6">최근 6개월 매출 추이</h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -192,33 +194,35 @@ export default function AdminStatsPage() {
         </div>
 
         {/* 카테고리 파이 차트 */}
-        <div className="bg-white rounded-[2rem] border-2 border-[#e8dac1] p-6 shadow-sm flex flex-col">
-          <h3 className="text-xl font-black text-[#4a2e1b] mb-2">카테고리별 판매 건수</h3>
-          <div className="flex-1 min-h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{borderRadius: '1rem', border: '2px solid #e8dac1', fontWeight: 'bold'}} 
-                />
-                <Legend iconType="circle" wrapperStyle={{fontWeight: 'bold', fontSize: '12px'}} />
-              </PieChart>
-            </ResponsiveContainer>
+        {!isAllUnknown && (
+          <div className="bg-white rounded-[2rem] border-2 border-[#e8dac1] p-6 shadow-sm flex flex-col">
+            <h3 className="text-xl font-black text-[#4a2e1b] mb-2">카테고리별 판매 건수</h3>
+            <div className="flex-1 min-h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{borderRadius: '1rem', border: '2px solid #e8dac1', fontWeight: 'bold'}} 
+                  />
+                  <Legend iconType="circle" wrapperStyle={{fontWeight: 'bold', fontSize: '12px'}} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* 3. 인기 아이템 TOP 10 */}
@@ -232,7 +236,7 @@ export default function AdminStatsPage() {
                 <th className="p-4 font-black">아이템명</th>
                 <th className="p-4 font-black text-center">카테고리</th>
                 <th className="p-4 font-black text-right">총 판매 수량</th>
-                <th className="p-4 font-black text-right">매출 합계</th>
+                <th className="p-4 font-black text-right">사용 치즈</th>
               </tr>
             </thead>
             <tbody>
@@ -253,7 +257,7 @@ export default function AdminStatsPage() {
                       </span>
                     </td>
                     <td className="p-4 font-black text-gray-600 text-right">{item.count} 건</td>
-                    <td className="p-4 font-black text-[#e07a5f] text-right">₩ {(item.revenue * 1000).toLocaleString()}</td>
+                    <td className="p-4 font-black text-[#e07a5f] text-right">🧀 {item.revenue.toLocaleString()} 개</td>
                   </tr>
                 ))
               )}
