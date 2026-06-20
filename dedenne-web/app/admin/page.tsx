@@ -2,65 +2,21 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "../../utils/supabase/client";
+import { getAdminDashboardMetrics } from "./actions";
 
 export default function AdminPage() {
   const [metrics, setMetrics] = useState({
     totalUsers: 0,
-    totalPets: 0,
     monthRevenue: 0,
     totalRevenue: 0,
   });
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        // 1. 전체 유저 수 (profiles 테이블)
-        const { count: usersCount } = await supabase
-          .from("profiles")
-          .select("*", { count: "exact", head: true });
-
-        // 2. 전체 캐릭터 수 (user_inventory에서 dedenne, cat, human)
-        const { count: petsCount, error: petsErr } = await supabase
-          .from("user_inventory")
-          .select("*", { count: "exact", head: true })
-          .in("item_id", ["dedenne", "cat", "human"]);
-        
-        if (petsErr) console.error("Pets count error:", petsErr);
-
-        // 3. 총 누적 매출 (진짜 돈, total_price >= 1000)
-        const { data: totalRevData, error: totalErr } = await supabase
-          .from("orders")
-          .select("total_price")
-          .eq("status", "completed")
-          .gte("total_price", 1000);
-        
-        if (totalErr) console.error("Total revenue error:", totalErr);
-        const totalRevenue = totalRevData?.reduce((sum, row) => sum + (row.total_price || 0), 0) || 0;
-
-        // 4. 이번 달 총 매출 (진짜 돈, total_price >= 1000)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        const { data: revenueData, error: revErr } = await supabase
-          .from("orders")
-          .select("total_price")
-          .eq("status", "completed")
-          .gte("total_price", 1000)
-          .gte("ordered_at", firstDayOfMonth.toISOString());
-        
-        if (revErr) console.error("Month revenue error:", revErr);
-        
-        const monthRevenue = revenueData?.reduce((sum, row) => sum + (row.total_price || 0), 0) || 0;
-
-        setMetrics({
-          totalUsers: usersCount || 0,
-          totalPets: petsCount || 0,
-          monthRevenue: monthRevenue,
-          totalRevenue: totalRevenue,
-        });
+        const data = await getAdminDashboardMetrics();
+        setMetrics(data);
       } catch (error) {
         console.error("Failed to fetch admin metrics:", error);
       } finally {
@@ -69,7 +25,7 @@ export default function AdminPage() {
     };
 
     fetchMetrics();
-  }, [supabase]);
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -78,7 +34,7 @@ export default function AdminPage() {
         <p className="text-[#a68a7e] font-medium">Pet-Link 전체 운영 현황을 한눈에 파악하세요.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* 전체 유저 수 */}
         <div className="bg-white rounded-[2rem] border-2 border-[#e8dac1] p-6 shadow-sm hover:border-[#e07a5f] hover:shadow-lg transition-all">
           <div className="flex items-center gap-3 mb-4">
@@ -93,19 +49,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* 전체 캐릭터 수 */}
-        <div className="bg-white rounded-[2rem] border-2 border-[#e8dac1] p-6 shadow-sm hover:border-[#e07a5f] hover:shadow-lg transition-all">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-yellow-100 text-yellow-500 rounded-2xl flex items-center justify-center">
-              <span className="text-2xl">🐾</span>
-            </div>
-            <h3 className="text-xl font-bold text-[#4a2e1b]">전체 캐릭터 수</h3>
-          </div>
-          <p className="text-[#a68a7e] text-sm">입양된 전체 캐릭터 수</p>
-          <div className="mt-4 text-4xl font-black text-[#e07a5f]">
-            {loading ? "..." : `${metrics.totalPets.toLocaleString()} 마리`}
-          </div>
-        </div>
+
 
         {/* 이번 달 총 매출 */}
         <div className="bg-white rounded-[2rem] border-2 border-[#e8dac1] p-6 shadow-sm hover:border-[#e07a5f] hover:shadow-lg transition-all">

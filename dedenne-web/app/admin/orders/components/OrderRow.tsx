@@ -43,9 +43,15 @@ export default function OrderRow({ order, onStatusChange }: OrderRowProps) {
           {order.profiles?.display_name || order.profiles?.email || "알 수 없음"}
         </td>
         <td className="p-4 text-sm text-[#a68a7e]">{orderDate}</td>
-        <td className="p-4 font-bold text-gray-600 text-center">{order.total_items}개</td>
+        <td className="p-4 font-bold text-gray-600 text-center">
+          {order.isRealMoney ? (
+            <span className="text-[#8c4a23]">+ {order.cheese_amount}개 (충전)</span>
+          ) : (
+            <span className="text-[#a68a7e]">- {order.cheese_amount}개 (사용)</span>
+          )}
+        </td>
         <td className="p-4 font-black text-[#e07a5f]">
-          {order.total_price >= 1000 ? `₩ ${order.total_price.toLocaleString()}` : `🧀 ${order.total_price}`}
+          {order.isRealMoney ? `₩ ${order.krw_amount.toLocaleString()}` : "-"}
         </td>
         <td className="p-4" onClick={(e) => e.stopPropagation()}>
           <StatusDropdown 
@@ -82,7 +88,7 @@ export default function OrderRow({ order, onStatusChange }: OrderRowProps) {
                           <div className="flex gap-2 text-xs text-[#a68a7e] font-bold mt-1">
                             <span className="uppercase">CHARGE</span>
                             <span>•</span>
-                            <span>₩ {order.total_price.toLocaleString()}</span>
+                            <span>₩ {order.krw_amount.toLocaleString()}</span>
                           </div>
                         </div>
                       </div>

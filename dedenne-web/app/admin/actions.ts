@@ -45,11 +45,16 @@ export async function getAdminOrders(statusFilter: string, startDate: string, en
     }
   }
 
-  const ordersWithProfiles = data.map(o => ({
-    ...o,
-    total_price: o.total_price < 1000 ? o.total_price * 1000 : o.total_price,
-    profiles: profileMap[o.user_id] || null
-  }));
+  const ordersWithProfiles = data.map(o => {
+    const isRealMoney = o.total_price >= 1000;
+    return {
+      ...o,
+      isRealMoney,
+      cheese_amount: isRealMoney ? o.total_items : o.total_price,
+      krw_amount: isRealMoney ? o.total_price : 0,
+      profiles: profileMap[o.user_id] || null
+    };
+  });
 
   let filteredData = ordersWithProfiles;
   if (searchQuery.trim() !== "") {
@@ -123,14 +128,53 @@ export async function updateOrderStatus(orderId: string, userId: string, newStat
   return true;
 }
 
+export async function getAdminDashboardMetrics() {
+  const supabase = getAdminClient();
+
+  // 1. 전체 유저 수
+  const { count: usersCount } = await supabase
+    .from("profiles")
+    .select("*", { count: "exact", head: true });
+
+  // 2. 총 누적 매출 (진짜 돈, total_price >= 1000)
+  const { data: totalRevData } = await supabase
+    .from("orders")
+    .select("total_price")
+    .eq("status", "completed")
+    .gte("total_price", 1000);
+  
+  const totalRevenue = totalRevData?.reduce((sum, row) => sum + (row.total_price || 0), 0) || 0;
+
+  // 3. 이번 달 총 매출 (진짜 돈, total_price >= 1000)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const { data: revenueData } = await supabase
+    .from("orders")
+    .select("total_price")
+    .eq("status", "completed")
+    .gte("total_price", 1000)
+    .gte("ordered_at", firstDayOfMonth.toISOString());
+  
+  const monthRevenue = revenueData?.reduce((sum, row) => sum + (row.total_price || 0), 0) || 0;
+
+  return {
+    totalUsers: usersCount || 0,
+    monthRevenue,
+    totalRevenue,
+  };
+}
+
 export async function getAdminStats() {
   const supabase = getAdminClient();
   
   const { data: orders } = await supabase
     .from("orders")
     .select("ordered_at, total_price")
-    .eq("status", "completed");
+    .eq("status", "completed")
+    .gte("total_price", 1000); // 정산 및 매출 현황 그래프는 실제 매출(원화) 기준
 
+  // 카테고리/Top10은 치즈로 구매한 아이템 내역 (total_price < 1000 혹은 order_items 조인)
   const { data: orderItems } = await supabase
     .from("order_items")
     .select(`
