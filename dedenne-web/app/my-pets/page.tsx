@@ -170,7 +170,7 @@ export default function MyPetsPage() {
       const petWithInventory = {
         ...pet,
         user_id: user.id,
-        inventory: { ...(pet.inventory || {}) },
+        inventory: { ...webInventory },
         downloadedAt: Date.now(),
         serverUrl: typeof window !== "undefined" ? window.location.origin : "https://pet-link-1mrv.vercel.app"
       };
@@ -192,7 +192,7 @@ export default function MyPetsPage() {
       console.error("Error generating custom pet player zip:", error);
       const petWithInventory = {
         ...pet,
-        inventory: { ...(pet.inventory || {}) },
+        inventory: { ...webInventory },
         downloadedAt: Date.now()
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
