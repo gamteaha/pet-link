@@ -34,12 +34,11 @@ export default function AdminStatsPage() {
     setIsLoading(true);
 
     try {
-      // 1. Fetch completed KRW orders
+      // 1. Fetch completed orders (remove gte 1000 to include recent cheese-based prices)
       const { data: orders } = await supabase
         .from("orders")
         .select("ordered_at, total_price")
-        .eq("status", "completed")
-        .gte("total_price", 1000);
+        .eq("status", "completed");
 
       const now = new Date();
       const todayStr = now.toISOString().split("T")[0];
@@ -63,7 +62,9 @@ export default function AdminStatsPage() {
       orders?.forEach((o) => {
         const d = new Date(o.ordered_at);
         const dStr = o.ordered_at.split("T")[0];
-        const val = o.total_price || 0;
+        // Handle mixed DB values: old ones are KRW (>= 1000), new ones are Cheese (< 1000). 1 Cheese = 1000 KRW.
+        let rawVal = o.total_price || 0;
+        const val = rawVal < 1000 ? rawVal * 1000 : rawVal;
 
         tTotal += val;
         if (dStr === todayStr) tToday += val;

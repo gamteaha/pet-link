@@ -21,7 +21,6 @@ export default function AdminOrdersPage() {
     let query = supabase
       .from("orders")
       .select("*")
-      .gte("total_price", 1000)
       .order("ordered_at", { ascending: false });
 
     // Apply DB-level filters if possible
@@ -57,9 +56,10 @@ export default function AdminOrdersPage() {
         }
       }
 
-      // Attach profile data manually
+      // Attach profile data manually and normalize total_price
       const ordersWithProfiles = data.map(o => ({
         ...o,
+        total_price: o.total_price < 1000 ? o.total_price * 1000 : o.total_price,
         profiles: profileMap[o.user_id] || null
       }));
 
@@ -156,8 +156,8 @@ export default function AdminOrdersPage() {
                 <th className="p-4 font-black">주문번호</th>
                 <th className="p-4 font-black">유저명</th>
                 <th className="p-4 font-black">주문일시</th>
-                <th className="p-4 font-black text-center">총 수량</th>
-                <th className="p-4 font-black">총 금액</th>
+                <th className="p-4 font-black text-center">결제 치즈</th>
+                <th className="p-4 font-black">총 금액 (₩)</th>
                 <th className="p-4 font-black">상태 변경</th>
               </tr>
             </thead>
