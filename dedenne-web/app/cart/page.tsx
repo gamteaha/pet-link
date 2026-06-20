@@ -60,6 +60,7 @@ export default function CartPage() {
       // Also make sure we save the name as well and inject serverUrl
       const petWithServer = {
         ...pet,
+        user_id: user?.id,
         serverUrl: typeof window !== "undefined" ? window.location.origin : "https://pet-link-1mrv.vercel.app"
       };
       const dataStr = JSON.stringify(petWithServer, null, 2);
@@ -80,7 +81,11 @@ export default function CartPage() {
     } catch (error) {
       console.error("Error generating custom pet player zip:", error);
       // Fallback: just download the petlink JSON if zip generation fails
-      const dataStr = JSON.stringify(pet, null, 2);
+      const petWithServer = {
+        ...pet,
+        user_id: user?.id,
+      };
+      const dataStr = JSON.stringify(petWithServer, null, 2);
       const fallbackBlob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(fallbackBlob);
       const a = document.createElement("a");

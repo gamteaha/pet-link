@@ -41,13 +41,14 @@ export default function InventoryPopup({ position, onClose, refreshTrigger }: In
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  // Load Inventory
+  // Load Inventory and Subscribe to Realtime
   useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     const fetchInventory = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
       setIsLoading(true);
       const { data } = await supabase
         .from('user_inventory')
@@ -68,6 +69,41 @@ export default function InventoryPopup({ position, onClose, refreshTrigger }: In
     };
 
     fetchInventory();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel(`web_user_inventory:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_inventory",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          const newRow = payload.new;
+          const oldRow = payload.old;
+          const eventType = payload.eventType;
+
+          setInventory(prev => {
+            const next = { ...prev };
+            if (eventType === "DELETE") {
+              if (oldRow && oldRow.item_id) {
+                next[oldRow.item_id] = 0;
+              }
+            } else if (newRow && newRow.item_id) {
+              next[newRow.item_id] = newRow.quantity;
+            }
+            return next;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user, supabase, refreshTrigger]);
 
   // Keep within screen bounds
