@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { createClient } from "../../../utils/supabase/client";
+import { getAdminLogsData } from "../actions";
 
 type TableStat = {
   icon: string;
@@ -27,7 +27,6 @@ export default function AdminLogsPage() {
 
   const [tableStats, setTableStats] = useState<TableStat[]>([
     { icon: "👥", label: "가입 유저", table: "profiles", color: "bg-blue-50 text-blue-600 border-blue-200", count: null },
-    { icon: "🐾", label: "등록 펫", table: "pets", color: "bg-yellow-50 text-yellow-600 border-yellow-200", count: null },
     { icon: "📦", label: "전체 주문", table: "orders", color: "bg-green-50 text-green-600 border-green-200", count: null },
     { icon: "🛍️", label: "주문 품목", table: "order_items", color: "bg-purple-50 text-purple-600 border-purple-200", count: null },
     { icon: "🏪", label: "등록 아이템", table: "items", color: "bg-orange-50 text-orange-600 border-orange-200", count: null },
@@ -40,133 +39,23 @@ export default function AdminLogsPage() {
 
   const fetchAll = async () => {
     setIsLoading(true);
-    const now = new Date();
-    
-    // --- 1. DB 연결 상태 체크 (간단한 ping) ---
     try {
-      const { error } = await supabase.from("profiles").select("id", { count: "exact", head: true });
-      setDbStatus(error ? "error" : "ok");
-    } catch {
+      const data = await getAdminLogsData();
+      
+      setDbStatus(data.dbStatus);
+      
+      setTableStats((prev) =>
+        prev.map((stat, i) => ({ ...stat, count: data.tableStats[i] ?? 0 }))
+      );
+
+      setActivities(data.activities);
+      setLastRefreshed(new Date());
+    } catch (e) {
+      console.error(e);
       setDbStatus("error");
+    } finally {
+      setIsLoading(false);
     }
-
-    // --- 2. 테이블별 row 수 조회 ---
-    const tables = ["profiles", "pets", "orders", "order_items", "items", "user_inventory", "cheese_logs"];
-    
-    const counts = await Promise.all(
-      tables.map((table) => {
-        if (table === "pets") {
-          return supabase
-            .from("user_inventory")
-            .select("*", { count: "exact", head: true })
-            .in("item_id", ["dedenne", "cat", "human"])
-            .then(({ count }) => count);
-        }
-        return supabase.from(table).select("*", { count: "exact", head: true }).then(({ count }) => count);
-      })
-    );
-
-    setTableStats((prev) =>
-      prev.map((stat, i) => ({ ...stat, count: counts[i] ?? 0 }))
-    );
-
-    // --- 3. 최근 활동 타임라인 데이터 수집 ---
-    const allActivities: ActivityItem[] = [];
-
-    // 최근 가입 유저
-    const { data: recentProfiles } = await supabase
-      .from("profiles")
-      .select("id, email, display_name, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5);
-    
-    recentProfiles?.forEach((p) => {
-      allActivities.push({
-        type: "signup",
-        icon: "👤",
-        color: "bg-blue-100 text-blue-700",
-        label: "신규 가입",
-        detail: p.display_name || p.email || p.id.split("-")[0],
-        time: p.created_at,
-      });
-    });
-
-    // 최근 주문
-    const { data: recentOrders } = await supabase
-      .from("orders")
-      .select("id, total_price, status, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5);
-    
-    recentOrders?.forEach((o) => {
-      allActivities.push({
-        type: "order",
-        icon: "💳",
-        color: "bg-green-100 text-green-700",
-        label: o.status === "completed" ? "결제 완료" : "주문 취소",
-        detail: `🧀 ${o.total_price} (주문 #${o.id.split("-")[0]})`,
-        time: o.created_at,
-      });
-    });
-
-    // 최근 치즈 변동
-    const { data: recentCheese } = await supabase
-      .from("cheese_logs")
-      .select("id, change_type, amount, reason, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5);
-    
-    recentCheese?.forEach((c) => {
-      allActivities.push({
-        type: "cheese",
-        icon: "🧀",
-        color: "bg-amber-100 text-amber-700",
-        label: `치즈 ${c.change_type}`,
-        detail: `${c.amount > 0 ? "+" : ""}${c.amount} (${c.reason || "-"})`,
-        time: c.created_at,
-      });
-    });
-
-    // 최근 입양된 펫
-    try {
-      const { data: recentPets, error: petErr } = await supabase
-        .from("user_inventory")
-        .select(`
-          id,
-          item_id,
-          created_at,
-          profiles (
-            display_name,
-            email
-          )
-        `)
-        .in("item_id", ["dedenne", "cat", "human"])
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (!petErr && recentPets) {
-        recentPets.forEach((p: any) => {
-          const petName = p.item_id === "dedenne" ? "데덴네" : p.item_id === "cat" ? "치즈냥" : "마을 주민";
-          allActivities.push({
-            type: "pet",
-            icon: "🐾",
-            color: "bg-purple-100 text-purple-700",
-            label: "신규 펫 입양",
-            detail: `${p.profiles?.display_name || p.profiles?.email || "알 수 없음"}님이 ${petName}을(를) 입양함`,
-            time: p.created_at,
-          });
-        });
-      }
-    } catch (err) {
-      console.error("Failed to query recent pets:", err);
-    }
-
-    // 전체 최신순 정렬
-    allActivities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-    setActivities(allActivities.slice(0, 30));
-
-    setLastRefreshed(now);
-    setIsLoading(false);
   };
 
   useEffect(() => {

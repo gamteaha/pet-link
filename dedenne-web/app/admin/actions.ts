@@ -73,16 +73,29 @@ export async function getOrderItems(orderId: string) {
   const supabase = getAdminClient();
   const { data, error } = await supabase
     .from("order_items")
-    .select(`
-      *,
-      items (
-        category,
-        emoji
-      )
-    `)
+    .select("*")
     .eq("order_id", orderId);
     
-  return data || [];
+  if (!data) return [];
+
+  const itemIds = Array.from(new Set(data.map(oi => oi.item_id).filter(Boolean)));
+  let itemsMap: Record<string, any> = {};
+  
+  if (itemIds.length > 0) {
+    const { data: itemsData } = await supabase
+      .from("items")
+      .select("id, category, emoji")
+      .in("id", itemIds);
+      
+    if (itemsData) {
+      itemsData.forEach(item => itemsMap[item.id] = item);
+    }
+  }
+
+  return data.map(oi => ({
+    ...oi,
+    items: itemsMap[oi.item_id] || null
+  }));
 }
 
 export async function updateOrderStatus(orderId: string, userId: string, newStatus: string) {
@@ -181,13 +194,115 @@ export async function getAdminStats() {
       item_id,
       item_name,
       price,
-      orders!inner(status),
-      items(category)
+      orders!inner(status)
     `)
     .eq("orders.status", "completed");
 
+  if (!orderItems) {
+    return { orders: orders || [], orderItems: [] };
+  }
+
+  // Fetch items manually since there's no FK relationship between order_items and items
+  const itemIds = Array.from(new Set(orderItems.map(oi => oi.item_id).filter(Boolean)));
+  const { data: itemsData } = await supabase
+    .from("items")
+    .select("id, category")
+    .in("id", itemIds);
+
+  const itemsMap: Record<string, any> = {};
+  if (itemsData) {
+    itemsData.forEach(item => itemsMap[item.id] = item);
+  }
+
+  const enrichedOrderItems = orderItems.map(oi => ({
+    ...oi,
+    items: itemsMap[oi.item_id] || { category: "unknown" }
+  }));
+
   return {
     orders: orders || [],
-    orderItems: orderItems || []
+    orderItems: enrichedOrderItems
+  };
+}
+
+export async function getAdminLogsData() {
+  const supabase = getAdminClient();
+  const now = new Date();
+
+  // 1. DB 연결 상태 체크
+  let dbStatus: "ok" | "error" = "ok";
+  try {
+    const { error } = await supabase.from("profiles").select("id", { count: "exact", head: true });
+    if (error) dbStatus = "error";
+  } catch {
+    dbStatus = "error";
+  }
+
+  // 2. 테이블별 row 수 조회 (pets 제외)
+  const tables = ["profiles", "orders", "order_items", "items", "user_inventory", "cheese_logs"];
+  
+  const counts = await Promise.all(
+    tables.map((table) => supabase.from(table).select("*", { count: "exact", head: true }).then(({ count }) => count))
+  );
+
+  const tableStats = counts.map((count, i) => count ?? 0);
+
+  // 3. 최근 활동 타임라인 데이터 수집
+  const allActivities: any[] = [];
+
+  // 최근 가입 유저
+  const { data: recentProfiles } = await supabase
+    .from("profiles")
+    .select("id, email, display_name, created_at")
+    .order("created_at", { ascending: false })
+    .limit(5);
+  
+  recentProfiles?.forEach((p) => {
+    allActivities.push({
+      type: "signup", icon: "👤", color: "bg-blue-100 text-blue-700",
+      label: "신규 가입", detail: p.display_name || p.email || p.id.split("-")[0],
+      time: p.created_at,
+    });
+  });
+
+  // 최근 주문
+  const { data: recentOrders } = await supabase
+    .from("orders")
+    .select("id, total_price, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(5);
+  
+  recentOrders?.forEach((o) => {
+    allActivities.push({
+      type: "order", icon: "💳", color: "bg-green-100 text-green-700",
+      label: o.status === "completed" ? "결제 완료" : "주문 취소",
+      detail: `₩/🧀 ${o.total_price} (주문 #${o.id.split("-")[0]})`,
+      time: o.created_at,
+    });
+  });
+
+  // 최근 치즈 변동
+  const { data: recentCheese } = await supabase
+    .from("cheese_logs")
+    .select("id, change_type, amount, reason, created_at")
+    .order("created_at", { ascending: false })
+    .limit(5);
+  
+  recentCheese?.forEach((c) => {
+    allActivities.push({
+      type: "cheese", icon: "🧀", color: "bg-amber-100 text-amber-700",
+      label: `치즈 ${c.change_type}`,
+      detail: `${c.amount > 0 ? "+" : ""}${c.amount} (${c.reason || "-"})`,
+      time: c.created_at,
+    });
+  });
+
+  // 전체 최신순 정렬
+  allActivities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
+  return {
+    dbStatus,
+    tableStats,
+    activities: allActivities.slice(0, 30)
   };
 }
