@@ -306,3 +306,133 @@ export async function getAdminLogsData() {
     activities: allActivities.slice(0, 30)
   };
 }
+
+export async function getAdminUsers(searchQuery: string) {
+  const supabase = getAdminClient();
+
+  // 1. 프로필 가져오기
+  let query = supabase.from("profiles").select("*").order("created_at", { ascending: false });
+  
+  if (searchQuery.trim() !== "") {
+    query = query.ilike("display_name", `%${searchQuery}%`);
+  }
+  
+  const { data: profiles, error } = await query;
+  if (error || !profiles) return [];
+
+  const userIds = profiles.map(p => p.id);
+  
+  const { data: orders } = await supabase
+    .from("orders")
+    .select("user_id, total_price, status")
+    .in("user_id", userIds)
+    .eq("status", "completed");
+
+  const { data: userPets } = await supabase
+    .from("user_pets")
+    .select("user_id, config")
+    .in("user_id", userIds);
+
+  const { data: cheeseLogs } = await supabase
+    .from("cheese_logs")
+    .select("user_id")
+    .in("user_id", userIds)
+    .eq("change_type", "spend");
+
+  let finalUsers = profiles.map(profile => {
+    const userOrders = orders?.filter(o => o.user_id === profile.id) || [];
+    const krwOrders = userOrders.filter(o => (o.total_price || 0) >= 1000);
+    const totalSpent = krwOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
+
+    const spendCount = cheeseLogs?.filter(l => l.user_id === profile.id).length || 0;
+
+    const userPet = userPets?.find(p => p.user_id === profile.id);
+    const mainPet = userPet?.config?.shopId || userPet?.config?.species || "dedenne";
+
+    return {
+      ...profile,
+      main_pet: mainPet,
+      order_count: spendCount,
+      total_spent: totalSpent
+    };
+  });
+
+  if (searchQuery.trim() !== "") {
+    const lowerQ = searchQuery.toLowerCase();
+    finalUsers = finalUsers.filter(u => 
+      (u.display_name || "").toLowerCase().includes(lowerQ) || 
+      (u.email || "").toLowerCase().includes(lowerQ)
+    );
+  }
+
+  return finalUsers;
+}
+
+export async function getAdminUserDetail(userId: string) {
+  const supabase = getAdminClient();
+
+  // 1. 인벤토리 목록 (FK to items exists)
+  const { data: inventory } = await supabase
+    .from("user_inventory")
+    .select(`
+      *,
+      items (
+        name,
+        category,
+        emoji
+      )
+    `)
+    .eq("user_id", userId);
+
+  // 2. 주문 내역
+  const { data: orders } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  let enrichedOrders: any[] = [];
+  if (orders && orders.length > 0) {
+    const orderIds = orders.map(o => o.id);
+    const { data: orderItems } = await supabase
+      .from("order_items")
+      .select("*")
+      .in("order_id", orderIds);
+
+    let itemsMap: Record<string, any> = {};
+    if (orderItems && orderItems.length > 0) {
+      const itemIds = Array.from(new Set(orderItems.map(oi => oi.item_id).filter(Boolean)));
+      const { data: itemsData } = await supabase
+        .from("items")
+        .select("id, category, emoji")
+        .in("id", itemIds);
+      if (itemsData) {
+        itemsData.forEach(item => itemsMap[item.id] = item);
+      }
+    }
+
+    enrichedOrders = orders.map(o => {
+      const itemsForOrder = orderItems?.filter(oi => oi.order_id === o.id).map(oi => ({
+        ...oi,
+        items: itemsMap[oi.item_id] || null
+      })) || [];
+      return {
+        ...o,
+        order_items: itemsForOrder
+      };
+    });
+  }
+
+  // 3. 치즈 로그
+  const { data: cheeseLogs } = await supabase
+    .from("cheese_logs")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  return {
+    inventory: inventory || [],
+    orders: enrichedOrders,
+    cheeseLogs: cheeseLogs || []
+  };
+}

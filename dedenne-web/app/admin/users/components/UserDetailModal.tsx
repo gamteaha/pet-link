@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createClient } from "../../../../utils/supabase/client";
+import { getAdminUserDetail } from "../../actions";
 
 type UserDetailModalProps = {
   isOpen: boolean;
@@ -16,7 +16,6 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
   const [orders, setOrders] = useState<any[]>([]);
   const [cheeseLogs, setCheeseLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => {
     if (isOpen && user) {
@@ -26,52 +25,16 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
 
   const fetchUserData = async () => {
     setIsLoading(true);
-    
-    // 1. 인벤토리 목록 가져오기
-    const { data: invData } = await supabase
-      .from("user_inventory")
-      .select(`
-        *,
-        items (
-          name,
-          category,
-          emoji
-        )
-      `)
-      .eq("user_id", user.id);
-
-    if (invData) setInventory(invData);
-
-    // 2. 주문 내역 및 order_items 가져오기
-    const { data: ordData } = await supabase
-      .from("orders")
-      .select(`
-        *,
-        order_items (
-          item_name,
-          price,
-          items (
-            category,
-            emoji
-          )
-        )
-      `)
-      .eq("user_id", user.id)
-      .gte("total_price", 1000)
-      .order("created_at", { ascending: false });
-
-    if (ordData) setOrders(ordData);
-
-    // 3. 치즈 로그 가져오기
-    const { data: logData } = await supabase
-      .from("cheese_logs")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (logData) setCheeseLogs(logData);
-
-    setIsLoading(false);
+    try {
+      const data = await getAdminUserDetail(user.id);
+      setInventory(data.inventory);
+      setOrders(data.orders);
+      setCheeseLogs(data.cheeseLogs);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen || !user) return null;
@@ -242,18 +205,18 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
                                 </td>
                                 <td className="p-3">
                                   <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                    log.action === "earn" || log.action === "admin_grant" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"
+                                    log.change_type === "earn" || log.change_type === "admin_grant" || log.change_type === "charge" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"
                                   }`}>
-                                    {log.action}
+                                    {log.change_type}
                                   </span>
                                 </td>
                                 <td className="p-3 font-bold text-[#4a2e1b] text-sm">
                                   {log.reason}
                                 </td>
                                 <td className={`p-3 font-black ${
-                                  log.action === "earn" || log.action === "admin_grant" ? "text-blue-600" : "text-red-600"
+                                  log.change_type === "earn" || log.change_type === "admin_grant" || log.change_type === "charge" ? "text-blue-600" : "text-red-600"
                                 }`}>
-                                  {log.action === "earn" || log.action === "admin_grant" ? "+" : "-"}{log.amount}
+                                  {log.change_type === "earn" || log.change_type === "admin_grant" || log.change_type === "charge" ? "+" : "-"}{log.amount}
                                 </td>
                                 <td className="p-3 font-bold text-gray-700">
                                   {log.balance_after}
