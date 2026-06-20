@@ -47,11 +47,25 @@ export async function POST(req: NextRequest) {
     const isIncomingInventoryEmpty = !petData.inventory || 
       Object.values(petData.inventory).every(v => v === 0);
 
-    // If it is startup sync, only merge if the incoming inventory is NOT empty.
-    // If it is active save (not startup), always overwrite the database (even if empty).
-    const shouldOverwrite = isStartup 
-      ? (!isIncomingInventoryEmpty && (desktopDownloadedAt >= webUpdatedAt))
-      : true;
+    // If it is startup sync, we NEVER overwrite the database inventory. The database is the source of truth on startup.
+    // If it is active save (not startup), we always overwrite the database (even if empty).
+    const shouldOverwrite = isStartup ? false : true;
+
+    console.log("[Sync Pet API] Start processing sync request:", {
+      petId,
+      isStartup,
+      realDbId,
+      incomingInventory: petData.inventory,
+      dbInventory: pet.config.inventory,
+      incomingAffection: petData.affection,
+      dbAffection: pet.config.affection,
+      incomingLevel: petData.level,
+      dbLevel: pet.config.level,
+      isIncomingInventoryEmpty,
+      desktopDownloadedAt,
+      webUpdatedAt,
+      shouldOverwrite
+    });
 
     let updatedInventory = pet.config.inventory;
     if (shouldOverwrite) {
@@ -61,12 +75,17 @@ export async function POST(req: NextRequest) {
     const newConfig = {
       ...pet.config,
       inventory: updatedInventory,
-      affection: petData.affection ?? pet.config.affection,
-      level: petData.level ?? pet.config.level,
+      affection: Math.max(petData.affection || 0, pet.config.affection || 0),
+      level: Math.max(petData.level || 0, pet.config.level || 0),
+      current_costume: petData.current_costume ?? pet.config.current_costume,
+      current_hair: petData.current_hair ?? pet.config.current_hair,
+      tutorial_complete: petData.tutorial_complete ?? pet.config.tutorial_complete,
       last_pat_date: petData.last_pat_date || pet.config.last_pat_date
       // Do NOT set updatedAt here. If we do, the desktop's downloadedAt 
       // will instantly become "stale" and subsequent syncs will be ignored!
     };
+
+    console.log("[Sync Pet API] Merged config to write to DB:", newConfig);
 
     // 3. Update the database
     const { error: updateError } = await supabase

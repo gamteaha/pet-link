@@ -270,6 +270,9 @@ export default function CustomPet({ previewConfig }: { previewConfig?: any }) {
 
   if (!config) return null;
 
+  const level = config.level ?? 1;
+  const affection = config.affection ?? 0;
+
   const characterProps: Character3DProps = {
     frontHairIndex: config.frontHairIndex ?? 2,
     backHairIndex: config.backHairIndex ?? 1,
