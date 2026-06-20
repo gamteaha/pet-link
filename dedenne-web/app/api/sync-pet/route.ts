@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
     });
 
     let updatedInventory = pet.config.inventory;
-    if (shouldOverwrite) {
-      updatedInventory = petData.inventory || pet.config.inventory;
+    if (shouldOverwrite && petData.inventory !== undefined) {
+      updatedInventory = petData.inventory;
     }
 
     const newConfig = {
