@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   try {
-    const { petId, petData } = await req.json();
+    const { petId, petData, isStartup } = await req.json();
 
     if (!petId || petId === 'default' || !petData) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
@@ -43,8 +43,18 @@ export async function POST(req: NextRequest) {
     const desktopDownloadedAt = petData.downloadedAt || 0;
     const webUpdatedAt = pet.config.updatedAt || 0;
     
+    // Check if incoming inventory is empty/0
+    const isIncomingInventoryEmpty = !petData.inventory || 
+      Object.values(petData.inventory).every(v => v === 0);
+
+    // If it is startup sync, only merge if the incoming inventory is NOT empty.
+    // If it is active save (not startup), always overwrite the database (even if empty).
+    const shouldOverwrite = isStartup 
+      ? (!isIncomingInventoryEmpty && (desktopDownloadedAt >= webUpdatedAt))
+      : true;
+
     let updatedInventory = pet.config.inventory;
-    if (desktopDownloadedAt >= webUpdatedAt) {
+    if (shouldOverwrite) {
       updatedInventory = petData.inventory || pet.config.inventory;
     }
 
