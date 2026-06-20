@@ -115,7 +115,7 @@ export default function MyPetsPage() {
 
   const loadInventoryData = async (petId: string | null) => {
     try {
-      // Load Unified Inventory (Supabase user_inventory)
+      // 1. Load Web Warehouse (Supabase)
       const { data: invData, error } = await supabase
         .from('user_inventory')
         .select('*')
@@ -123,7 +123,6 @@ export default function MyPetsPage() {
         .in('item_id', Object.keys(ITEMS));
 
       const webInv: Record<string, number> = {};
-      Object.keys(ITEMS).forEach(k => { webInv[k] = 0; });
       if (invData) {
         invData.forEach((row) => {
           webInv[row.item_id] = row.quantity;
@@ -132,11 +131,23 @@ export default function MyPetsPage() {
       setWebInventory({ ...webInv });
       setOriginalWebInventory({ ...webInv });
       
+      // 2. Load Local Pet Bag from Supabase user_pets.config
       const pet = myPets.find(p => p.id === petId);
       if (pet) {
+        // pet is already the config object (with db_id)
         setPetData(pet);
+        
+        const bag = pet.inventory || {};
+        const localInv: Record<string, number> = {};
+        Object.keys(ITEMS).forEach((id) => {
+          localInv[id] = bag[id] || 0;
+        });
+        setPetBag({ ...localInv });
+        setOriginalPetBag({ ...localInv });
       } else {
         setPetData(null);
+        setPetBag({});
+        setOriginalPetBag({});
       }
     } catch (err) {
       console.error("Failed to load inventory data:", err);
@@ -148,25 +159,32 @@ export default function MyPetsPage() {
     setTimeout(() => setToastMsg(null), 3000);
   };
 
-  const adjustItemQuantity = (itemId: string, amount: number) => {
-    setWebInventory(prev => {
-      const current = prev[itemId] || 0;
-      return {
-        ...prev,
-        [itemId]: Math.max(0, current + amount)
-      };
-    });
+  const moveItem = (itemId: string, direction: 'to-bag' | 'to-web') => {
+    if (direction === 'to-bag') {
+      const currentWeb = webInventory[itemId] || 0;
+      if (currentWeb > 0) {
+        setWebInventory(prev => ({ ...prev, [itemId]: currentWeb - 1 }));
+        setPetBag(prev => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
+      }
+    } else {
+      const currentBag = petBag[itemId] || 0;
+      if (currentBag > 0) {
+        setPetBag(prev => ({ ...prev, [itemId]: currentBag - 1 }));
+        setWebInventory(prev => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
+      }
+    }
   };
 
   const handleSaveInventory = async () => {
     if (!user) return;
     setIsSaving(true);
     try {
-      // 1. Save directly to Supabase user_inventory
+      // 1. Save petBag (캐릭터 가방 수량) to Supabase user_inventory
+      //    → 데스크톱 앱이 Realtime으로 즉시 감지함
       const inventoryUpserts = Object.keys(ITEMS).map((itemId) => ({
         user_id: user.id,
         item_id: itemId,
-        quantity: webInventory[itemId] || 0,
+        quantity: petBag[itemId] || 0,
         updated_at: new Date().toISOString()
       }));
 
@@ -176,15 +194,14 @@ export default function MyPetsPage() {
 
       if (invError) throw invError;
 
-      // 2. Clear inventory key from user_pets config if it exists
+      // 2. Save to Supabase user_pets.config (legacy, for petlink file compat)
       if (selectedPetId) {
         const petToUpdate = myPets.find(p => p.id === selectedPetId);
         if (petToUpdate) {
           const { db_id, ...configWithoutDbId } = petToUpdate;
-          // Exclude legacy inventory field entirely
-          const { inventory: _, ...restConfig } = configWithoutDbId;
           const newConfig = {
-            ...restConfig,
+            ...configWithoutDbId,
+            inventory: { ...petBag },
             updatedAt: Date.now()
           };
           
@@ -200,27 +217,12 @@ export default function MyPetsPage() {
           const updatedPets = myPets.map(p => p.id === selectedPetId ? { ...newConfig, db_id } : p);
           setMyPets(updatedPets);
           setPetData(newConfig);
-          
-          // If we happen to be in electron (though rare for my-pets page), also sync local disk
-          if (typeof window !== "undefined" && (window as any).electronAPI?.savePetData) {
-            await (window as any).electronAPI.savePetData({ ...newConfig, db_id });
-          }
-
-          // Legacy Python app sync: Also sync local python app's pet_data.json if running locally
-          try {
-            await fetch('/api/python/sync', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ config: { ...newConfig, db_id } })
-            });
-          } catch (e) {
-            // Ignore error if python app sync fails
-          }
         }
       }
 
       setOriginalWebInventory({ ...webInventory });
-      showToast("인벤토리 저장이 완료되었습니다! 🎉");
+      setOriginalPetBag({ ...petBag });
+      showToast("저장 완료! 데스크톱 앱 가방에 실시간 반영됩니다 🎉");
     } catch (err) {
       console.error("Save error:", err);
       showToast("저장 중 오류가 발생했습니다.");
@@ -229,7 +231,9 @@ export default function MyPetsPage() {
     }
   };
 
-  const hasUnsavedChanges = JSON.stringify(webInventory) !== JSON.stringify(originalWebInventory);
+  const hasUnsavedChanges =
+    JSON.stringify(webInventory) !== JSON.stringify(originalWebInventory) ||
+    JSON.stringify(petBag) !== JSON.stringify(originalPetBag);
 
   const handleDownloadPetData = async (pet: any) => {
     setIsDownloading((prev) => ({ ...prev, [pet.id]: true }));
@@ -240,11 +244,11 @@ export default function MyPetsPage() {
 
       const zip = await JSZip.loadAsync(blob);
       
-      // 3. Inject the pet's configuration as 'character.petlink' inside the zip
+      // 3. Inject the pet's configuration AND inventory as 'character.petlink' inside the zip
       // pet is already the config object augmented with db_id
       const petWithInventory = {
         ...pet,
-        user_id: user?.id,
+        inventory: { ...(pet.inventory || {}) },
         downloadedAt: Date.now(),
         serverUrl: typeof window !== "undefined" ? window.location.origin : "https://pet-link-1mrv.vercel.app"
       };
@@ -263,7 +267,7 @@ export default function MyPetsPage() {
       console.error("Error generating custom pet player zip:", error);
       const petWithInventory = {
         ...pet,
-        user_id: user?.id,
+        inventory: { ...(pet.inventory || {}) },
         downloadedAt: Date.now()
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
@@ -320,7 +324,7 @@ export default function MyPetsPage() {
             <div className="flex justify-between items-end mb-6">
               <div>
                 <h2 className="text-3xl font-black flex items-center gap-2">📦 내 창고 연동</h2>
-                <p className="text-[#a68a7e] font-bold mt-2">보유 중인 아이템 수량을 변경하고 저장하면 PC 데스크톱 펫의 가방에 실시간으로 반영됩니다.</p>
+                <p className="text-[#a68a7e] font-bold mt-2">상점에서 구매한 아이템을 캐릭터 가방으로 옮겨주세요.</p>
               </div>
               <button
                 onClick={handleSaveInventory}
@@ -366,48 +370,73 @@ export default function MyPetsPage() {
                   </div>
                 </div>
 
-                {/* Unified Inventory Manager */}
-                <div className="bg-[#fdf6e3] rounded-2xl p-6 border-[3px] border-[#d0b8a0] mt-4">
-                  <h3 className="text-center font-black text-xl mb-6 pb-2 border-b-2 border-[#e8dac1]">내 인벤토리 아이템 관리 🎒</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(ITEMS).map(([id, info]) => {
-                      const qty = webInventory[id] || 0;
-                      return (
-                        <div key={id} className="flex items-center justify-between bg-white p-4 rounded-xl border border-[#e8dac1] shadow-sm">
-                          <div className="flex items-center gap-3">
-                            <span className="text-3xl">{info.emoji}</span>
-                            <div>
-                              <p className="font-bold text-base leading-tight text-[#4a2e1b]">{info.name}</p>
-                              <p className="text-[#a68a7e] text-xs mt-1">수량: <span className="font-extrabold text-[#c44933] text-sm">{qty}</span>개</p>
+                {/* Transfer UI */}
+                <div className="flex gap-4 items-stretch mt-4">
+                  
+                  {/* Web Warehouse */}
+                  <div className="flex-1 bg-[#fdf6e3] rounded-2xl p-4 border-[3px] border-[#d0b8a0]">
+                    <h3 className="text-center font-black text-xl mb-4 pb-2 border-b-2 border-[#e8dac1]">웹 창고 ☁️</h3>
+                    <div className="space-y-3">
+                      {Object.entries(ITEMS).map(([id, info]) => {
+                        const qty = webInventory[id] || 0;
+                        return (
+                          <div key={id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-[#e8dac1]">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">{info.emoji}</span>
+                              <div>
+                                <p className="font-bold text-sm leading-tight">{info.name}</p>
+                                <p className="text-[#a68a7e] text-xs">{qty}개</p>
+                              </div>
+                            </div>
+                            <button
+                               onClick={() => moveItem(id, 'to-bag')}
+                              disabled={qty <= 0}
+                              className={`w-8 h-8 flex items-center justify-center bg-[#8c4a23] hover:bg-[#733c1c] disabled:bg-[#e8dac1] disabled:text-[#a68a7e] text-white rounded-lg font-black transition-colors ${tutorialStep === 4 && qty > 0 ? "ring-4 ring-offset-1 ring-[#e07a5f] animate-pulse" : ""}`}
+                            >
+                              ▶
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Character Bag */}
+                  <div className="flex-1 bg-[#fdf6e3] rounded-2xl p-4 border-[3px] border-[#d0b8a0]">
+                    <h3 className="text-center font-black text-xl mb-4 pb-2 border-b-2 border-[#e8dac1]">캐릭터 가방 🎒</h3>
+                    <div className="space-y-3">
+                      {Object.entries(ITEMS).map(([id, info]) => {
+                        const qty = petBag[id] || 0;
+                        return (
+                          <div key={id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-[#e8dac1]">
+                            <button
+                              onClick={() => moveItem(id, 'to-web')}
+                              disabled={qty <= 0}
+                              className="w-8 h-8 flex items-center justify-center bg-[#a68a7e] hover:bg-[#8c4a23] disabled:bg-[#e8dac1] disabled:text-[#a68a7e] text-white rounded-lg font-black transition-colors"
+                            >
+                              ◀
+                            </button>
+                            <div className="flex items-center gap-2 flex-row-reverse text-right">
+                              <span className="text-2xl">{info.emoji}</span>
+                              <div>
+                                <p className="font-bold text-sm leading-tight">{info.name}</p>
+                                <p className="text-[#a68a7e] text-xs">{qty}개</p>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => adjustItemQuantity(id, -1)}
-                              disabled={qty <= 0}
-                              className="w-10 h-10 flex items-center justify-center bg-[#a68a7e] hover:bg-[#8c4a23] disabled:bg-[#e8dac1] disabled:text-[#a68a7e] text-white rounded-xl font-black text-lg transition-colors shadow-sm"
-                            >
-                              -
-                            </button>
-                            <button
-                              onClick={() => adjustItemQuantity(id, 1)}
-                              className="w-10 h-10 flex items-center justify-center bg-[#8c4a23] hover:bg-[#733c1c] text-white rounded-xl font-black text-lg transition-colors shadow-sm"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
+
                 </div>
 
                 {/* Helpful Note for Updates */}
                 <div className="mt-4 bg-[#fff4e6] p-4 rounded-xl border border-[#ffd8a8] flex gap-3 items-center">
                   <span className="text-2xl">💡</span>
                   <p className="text-sm text-[#d9480f] font-bold">
-                    아이템 변경 사항을 저장하면 PC 데스크톱 펫의 가방에도 실시간으로 연동됩니다.<br/>
-                    <span className="font-normal text-[#e8590c]">인벤토리 연동을 시작하기 위해 아래 목록에서 [PC 펫 플레이어 재다운로드]를 받아주세요.</span>
+                    아이템을 저장했는데 데스크톱 펫의 가방에 나타나지 않나요?<br/>
+                    <span className="font-normal text-[#e8590c]">목록에서 [PC 펫 플레이어 재다운로드]를 눌러 펫 앱을 최신 버전으로 업데이트 해보세요!</span>
                   </p>
                 </div>
               </div>
