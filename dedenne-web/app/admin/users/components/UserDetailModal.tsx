@@ -57,6 +57,7 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
         )
       `)
       .eq("user_id", user.id)
+      .gte("total_price", 1000)
       .order("created_at", { ascending: false });
 
     if (ordData) setOrders(ordData);

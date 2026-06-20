@@ -254,7 +254,7 @@ export default function MyPetsPage() {
         downloadedAt: Date.now()
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
-      zip.file("character.petlink", dataStr);
+      zip.file("pet-player/character.petlink", dataStr);
       const content = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(content);
       const a = document.createElement("a");

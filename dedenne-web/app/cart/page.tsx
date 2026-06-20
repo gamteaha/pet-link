@@ -59,7 +59,7 @@ export default function CartPage() {
       // 3. Inject the pet's configuration as 'character.petlink' inside the zip
       // Also make sure we save the name as well
       const dataStr = JSON.stringify(pet, null, 2);
-      zip.file("character.petlink", dataStr);
+      zip.file("pet-player/character.petlink", dataStr);
 
       // 4. Generate the new zip blob
       const content = await zip.generateAsync({ type: "blob" });
