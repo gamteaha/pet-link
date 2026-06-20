@@ -5,6 +5,7 @@ import { DownloadCloud, PlayCircle, MousePointerClick, HeartHandshake, ChevronRi
 
 interface ManualModalProps {
   onClose: () => void;
+  isDedenne?: boolean;
 }
 
 const steps = [
@@ -40,10 +41,40 @@ const steps = [
   }
 ];
 
-export default function ManualModal({ onClose }: ManualModalProps) {
+const dedenneSteps = [
+  {
+    icon: <DownloadCloud className="w-16 h-16 text-[#e07a5f]" />,
+    title: "1. 데덴네 플레이어 다운로드 및 압축 해제",
+    desc: "나의 펫 목록에서 [PC 펫 플레이어 다운로드] 버튼을 눌러 ZIP 파일을 다운로드하고, 원하는 폴더에 압축을 풀어주세요."
+  },
+  {
+    icon: <PlayCircle className="w-16 h-16 text-[#f2cc8f]" />,
+    title: "2. 실행 파일(데덴네 실행.bat) 더블클릭",
+    desc: "압축을 푼 폴더 안에 있는 '데덴네 실행.bat' 파일을 더블클릭합니다. 최초 실행 시 파이썬 가상환경과 라이브러리를 설치하느라 1~2분 정도 소요됩니다."
+  },
+  {
+    icon: <Terminal className="w-16 h-16 text-[#81b29a]" />,
+    title: "3. 설치가 완료될 때까지 대기",
+    desc: "까만 실행창(명령프롬프트)이 뜨고 'Running dependency check...' 문구가 나온다면 정상입니다. 설치가 끝날 때까지 창을 끄지 말고 잠시만 기다려주세요!"
+  },
+  {
+    icon: <MousePointerClick className="w-16 h-16 text-[#f2cc8f]" />,
+    title: "4. 데덴네와 상호작용하기",
+    desc: "설치가 완료되면 바탕화면에 데덴네가 뿅 하고 나타납니다. 마우스 왼쪽 버튼으로 드래그할 수 있고, 우클릭을 하면 메뉴가 열립니다."
+  },
+  {
+    icon: <HeartHandshake className="w-16 h-16 text-[#e07a5f]" />,
+    title: "5. 공용 가방 아이템 공유",
+    desc: "우클릭 메뉴에서 '가방'을 열어 간식을 주거나 씻겨주세요! 상점에서 구매한 공용 가방 아이템 수량과 완벽히 연동됩니다."
+  }
+];
+
+export default function ManualModal({ onClose, isDedenne }: ManualModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+  const activeSteps = isDedenne ? dedenneSteps : steps;
+
+  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, activeSteps.length - 1));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
 
   return (
@@ -71,11 +102,11 @@ export default function ManualModal({ onClose }: ManualModalProps) {
         {/* Carousel Content */}
         <div className="p-10 flex flex-col items-center text-center min-h-[320px] justify-center">
           <div className="bg-white w-32 h-32 rounded-full shadow-md flex items-center justify-center mb-8 transform transition-transform hover:scale-110 duration-300">
-            {steps[currentStep].icon}
+            {activeSteps[currentStep].icon}
           </div>
-          <h3 className="text-2xl font-bold text-[#4a2e1b] mb-4">{steps[currentStep].title}</h3>
+          <h3 className="text-2xl font-bold text-[#4a2e1b] mb-4">{activeSteps[currentStep].title}</h3>
           <p className="text-lg text-[#8c4a23] leading-relaxed max-w-lg">
-            {steps[currentStep].desc}
+            {activeSteps[currentStep].desc}
           </p>
         </div>
 
@@ -92,7 +123,7 @@ export default function ManualModal({ onClose }: ManualModalProps) {
 
           {/* Dots */}
           <div className="flex gap-2">
-            {steps.map((_, idx) => (
+            {activeSteps.map((_, idx) => (
               <div 
                 key={idx} 
                 className={`w-3 h-3 rounded-full transition-colors duration-300 ${
@@ -103,11 +134,11 @@ export default function ManualModal({ onClose }: ManualModalProps) {
           </div>
 
           <button 
-            onClick={currentStep === steps.length - 1 ? onClose : nextStep}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-[#e07a5f] border-2 border-[#c44933] hover:bg-[#c44933] transition-all"
+            onClick={currentStep === activeSteps.length - 1 ? onClose : nextStep}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-[#e07a5f] hover:bg-[#c44933] transition-all shadow-md hover:shadow-lg"
           >
-            {currentStep === steps.length - 1 ? '완료' : '다음'}
-            {currentStep !== steps.length - 1 && <ChevronRight className="w-5 h-5" />}
+            {currentStep === activeSteps.length - 1 ? '시작하기' : '다음'}
+            {currentStep !== activeSteps.length - 1 && <ChevronRight className="w-5 h-5" />}
           </button>
         </div>
 

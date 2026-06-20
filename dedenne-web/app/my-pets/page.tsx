@@ -36,7 +36,7 @@ export default function MyPetsPage() {
   // Inventory Transfer States
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [webInventory, setWebInventory] = useState<Record<string, number>>({});
-  const [showManual, setShowManual] = useState(false);
+  const [showManualPetId, setShowManualPetId] = useState<string | null>(null);
   const [petData, setPetData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -389,7 +389,7 @@ export default function MyPetsPage() {
                       </button>
 
                       <button 
-                        onClick={() => setShowManual(true)}
+                        onClick={() => setShowManualPetId(pet.shopId)}
                         className="px-4 py-3 bg-[#f8eedb] hover:bg-[#e8dac1] text-[#8c4a23] border-2 border-[#e8dac1] rounded-xl font-bold flex items-center gap-2 shadow-sm transition-transform hover:scale-105"
                         title="설치 및 사용 가이드 보기"
                       >
@@ -421,8 +421,11 @@ export default function MyPetsPage() {
         </div>
       )}
       {/* Manual Modal */}
-      {showManual && (
-        <ManualModal onClose={() => setShowManual(false)} />
+      {showManualPetId && (
+        <ManualModal 
+          isDedenne={showManualPetId === 'dedenne'} 
+          onClose={() => setShowManualPetId(null)} 
+        />
       )}
     </div>
   );
