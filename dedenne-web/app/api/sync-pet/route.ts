@@ -39,14 +39,23 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Merge the incoming offline data (inventory, affection, level) into the existing config
-    // We trust the desktop app's state for these specific fields.
+    // We trust the desktop app's inventory ONLY IF it has downloaded the latest config.
+    const desktopDownloadedAt = petData.downloadedAt || 0;
+    const webUpdatedAt = pet.config.updatedAt || 0;
+    
+    let updatedInventory = pet.config.inventory;
+    if (desktopDownloadedAt >= webUpdatedAt) {
+      updatedInventory = petData.inventory || pet.config.inventory;
+    }
+
     const newConfig = {
       ...pet.config,
-      inventory: petData.inventory || pet.config.inventory,
+      inventory: updatedInventory,
       affection: petData.affection ?? pet.config.affection,
       level: petData.level ?? pet.config.level,
-      last_pat_date: petData.last_pat_date || pet.config.last_pat_date,
-      updatedAt: Date.now()
+      last_pat_date: petData.last_pat_date || pet.config.last_pat_date
+      // Do NOT set updatedAt here. If we do, the desktop's downloadedAt 
+      // will instantly become "stale" and subsequent syncs will be ignored!
     };
 
     // 3. Update the database
