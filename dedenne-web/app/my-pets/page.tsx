@@ -115,40 +115,33 @@ export default function MyPetsPage() {
 
   const loadInventoryData = async (petId: string | null) => {
     try {
-      // 1. Load Web Warehouse (Supabase)
-      const { data: invData, error } = await supabase
+      // 웹 창고 = quantity - bag_quantity
+      // 캐릭터 가방 = bag_quantity (데스크톱 앱이 읽는 값)
+      const { data: invData } = await supabase
         .from('user_inventory')
-        .select('*')
+        .select('item_id, quantity, bag_quantity')
         .eq('user_id', user?.id)
         .in('item_id', Object.keys(ITEMS));
 
       const webInv: Record<string, number> = {};
+      const bagInv: Record<string, number> = {};
+      Object.keys(ITEMS).forEach(k => { webInv[k] = 0; bagInv[k] = 0; });
+
       if (invData) {
         invData.forEach((row) => {
-          webInv[row.item_id] = row.quantity;
+          const bagQty = row.bag_quantity || 0;
+          const totalQty = row.quantity || 0;
+          bagInv[row.item_id] = bagQty;
+          webInv[row.item_id] = Math.max(0, totalQty - bagQty);
         });
       }
       setWebInventory({ ...webInv });
       setOriginalWebInventory({ ...webInv });
-      
-      // 2. Load Local Pet Bag from Supabase user_pets.config
+      setPetBag({ ...bagInv });
+      setOriginalPetBag({ ...bagInv });
+
       const pet = myPets.find(p => p.id === petId);
-      if (pet) {
-        // pet is already the config object (with db_id)
-        setPetData(pet);
-        
-        const bag = pet.inventory || {};
-        const localInv: Record<string, number> = {};
-        Object.keys(ITEMS).forEach((id) => {
-          localInv[id] = bag[id] || 0;
-        });
-        setPetBag({ ...localInv });
-        setOriginalPetBag({ ...localInv });
-      } else {
-        setPetData(null);
-        setPetBag({});
-        setOriginalPetBag({});
-      }
+      setPetData(pet || null);
     } catch (err) {
       console.error("Failed to load inventory data:", err);
     }
@@ -179,46 +172,20 @@ export default function MyPetsPage() {
     if (!user) return;
     setIsSaving(true);
     try {
-      // 1. Save petBag (캐릭터 가방 수량) to Supabase user_inventory
-      //    → 데스크톱 앱이 Realtime으로 즉시 감지함
-      const inventoryUpserts = Object.keys(ITEMS).map((itemId) => ({
+      // bag_quantity만 업데이트 (quantity는 구매 수량이므로 보존)
+      // 데스크톱 앱은 bag_quantity를 Realtime으로 즉시 감지
+      const bagUpdates = Object.keys(ITEMS).map((itemId) => ({
         user_id: user.id,
         item_id: itemId,
-        quantity: petBag[itemId] || 0,
+        bag_quantity: petBag[itemId] || 0,
         updated_at: new Date().toISOString()
       }));
 
       const { error: invError } = await supabase
         .from('user_inventory')
-        .upsert(inventoryUpserts, { onConflict: 'user_id, item_id' });
+        .upsert(bagUpdates, { onConflict: 'user_id, item_id' });
 
       if (invError) throw invError;
-
-      // 2. Save to Supabase user_pets.config (legacy, for petlink file compat)
-      if (selectedPetId) {
-        const petToUpdate = myPets.find(p => p.id === selectedPetId);
-        if (petToUpdate) {
-          const { db_id, ...configWithoutDbId } = petToUpdate;
-          const newConfig = {
-            ...configWithoutDbId,
-            inventory: { ...petBag },
-            updatedAt: Date.now()
-          };
-          
-          if (db_id) {
-            const { error: petUpdateError } = await supabase
-              .from('user_pets')
-              .update({ config: newConfig })
-              .eq('id', db_id);
-              
-            if (petUpdateError) throw petUpdateError;
-          }
-          
-          const updatedPets = myPets.map(p => p.id === selectedPetId ? { ...newConfig, db_id } : p);
-          setMyPets(updatedPets);
-          setPetData(newConfig);
-        }
-      }
 
       setOriginalWebInventory({ ...webInventory });
       setOriginalPetBag({ ...petBag });
