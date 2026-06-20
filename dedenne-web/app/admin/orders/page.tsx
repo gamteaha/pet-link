@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { createClient } from "../../../utils/supabase/client";
 import OrderRow from "./components/OrderRow";
 import { exportCsv } from "./utils/exportCsv";
+import { getAdminOrders } from "../actions";
 
 export default function AdminOrdersPage() {
-  const supabase = createClient();
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -18,64 +17,14 @@ export default function AdminOrdersPage() {
 
   const fetchOrders = async () => {
     setIsLoading(true);
-    let query = supabase
-      .from("orders")
-      .select("*")
-      .order("ordered_at", { ascending: false });
-
-    // Apply DB-level filters if possible
-    if (statusFilter !== "all") {
-      query = query.eq("status", statusFilter);
+    try {
+      const data = await getAdminOrders(statusFilter, startDate, endDate, searchQuery);
+      setOrders(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
     }
-    if (startDate) {
-      query = query.gte("ordered_at", new Date(startDate).toISOString());
-    }
-    if (endDate) {
-      // Include the whole end date up to 23:59:59
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      query = query.lte("ordered_at", end.toISOString());
-    }
-
-    const { data, error } = await query;
-    if (!error && data) {
-      // Manually fetch profiles since there is no formal FK relationship
-      const userIds = Array.from(new Set(data.map(o => o.user_id).filter(Boolean)));
-      let profileMap: Record<string, any> = {};
-      
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, display_name, email")
-          .in("id", userIds);
-          
-        if (profiles) {
-          profiles.forEach(p => {
-            profileMap[p.id] = p;
-          });
-        }
-      }
-
-      // Attach profile data manually and normalize total_price
-      const ordersWithProfiles = data.map(o => ({
-        ...o,
-        total_price: o.total_price < 1000 ? o.total_price * 1000 : o.total_price,
-        profiles: profileMap[o.user_id] || null
-      }));
-
-      // Client-side filter for user name
-      let filteredData = ordersWithProfiles;
-      if (searchQuery.trim() !== "") {
-        const lowerQ = searchQuery.toLowerCase();
-        filteredData = ordersWithProfiles.filter((o) => {
-          const name = (o.profiles?.display_name || "").toLowerCase();
-          const email = (o.profiles?.email || "").toLowerCase();
-          return name.includes(lowerQ) || email.includes(lowerQ) || o.user_id?.toLowerCase().includes(lowerQ);
-        });
-      }
-      setOrders(filteredData);
-    }
-    setIsLoading(false);
   };
 
   useEffect(() => {

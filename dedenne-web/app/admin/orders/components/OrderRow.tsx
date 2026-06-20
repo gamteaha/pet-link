@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { createClient } from "../../../../utils/supabase/client";
 import StatusDropdown from "./StatusDropdown";
 import { motion, AnimatePresence } from "framer-motion";
+import { getOrderItems } from "../../actions";
 
 type OrderRowProps = {
   order: any;
@@ -14,28 +14,17 @@ export default function OrderRow({ order, onStatusChange }: OrderRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [orderItems, setOrderItems] = useState<any[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
-  const supabase = createClient();
-
   const handleToggle = async () => {
     if (!isExpanded && orderItems.length === 0) {
       setIsLoadingItems(true);
-      // Fetch order_items with their related items details if needed, 
-      // but order_items already has item_id, item_name, price.
-      const { data, error } = await supabase
-        .from("order_items")
-        .select(`
-          *,
-          items (
-            category,
-            emoji
-          )
-        `)
-        .eq("order_id", order.id);
-
-      if (!error && data) {
+      try {
+        const data = await getOrderItems(order.id);
         setOrderItems(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoadingItems(false);
       }
-      setIsLoadingItems(false);
     }
     setIsExpanded(!isExpanded);
   };

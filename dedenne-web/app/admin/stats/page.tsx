@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { createClient } from "../../../utils/supabase/client";
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend 
 } from "recharts";
 import ExportModal from "./components/ExportModal";
+import { getAdminStats } from "../actions";
 
 export default function AdminStatsPage() {
-  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
@@ -34,11 +33,7 @@ export default function AdminStatsPage() {
     setIsLoading(true);
 
     try {
-      // 1. Fetch completed orders (remove gte 1000 to include recent cheese-based prices)
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("ordered_at, total_price")
-        .eq("status", "completed");
+      const { orders, orderItems } = await getAdminStats();
 
       const now = new Date();
       const todayStr = now.toISOString().split("T")[0];
@@ -84,19 +79,8 @@ export default function AdminStatsPage() {
       );
 
       // 2. Fetch order items for Top 10 and Category chart
-      // Note: In a large db, you'd aggregate this on the server via RPC.
-      const { data: orderItems } = await supabase
-        .from("order_items")
-        .select(`
-          item_id,
-          item_name,
-          price,
-          orders!inner(status),
-          items(category)
-        `)
-        .eq("orders.status", "completed");
 
-      if (orderItems) {
+      if (orderItems && orderItems.length > 0) {
         const itemStats: Record<string, { name: string, category: string, count: number, revenue: number }> = {};
         const catStats: Record<string, number> = {
           pet: 0, food: 0, toy: 0, apparel: 0, special: 0, unknown: 0
