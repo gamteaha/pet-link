@@ -118,37 +118,29 @@ export default function MyPetsPage() {
       const pet = myPets.find(p => p.id === petConfigId);
       const petDbId = pet?.db_id;
 
-      // 1. 웹 창고 = user_inventory.quantity
+      // 1. 웹 창고 = user_inventory.quantity, 캐릭터 가방 = user_inventory.bag_quantity
       const { data: invData } = await supabase
         .from('user_inventory')
-        .select('item_id, quantity')
+        .select('item_id, quantity, bag_quantity')
         .eq('user_id', user?.id)
         .in('item_id', Object.keys(ITEMS));
 
       const webInv: Record<string, number> = {};
-      Object.keys(ITEMS).forEach(k => { webInv[k] = 0; });
+      const bagInv: Record<string, number> = {};
+      Object.keys(ITEMS).forEach(k => { 
+        webInv[k] = 0; 
+        bagInv[k] = 0;
+      });
+
       if (invData) {
-        invData.forEach(row => { webInv[row.item_id] = row.quantity || 0; });
+        invData.forEach(row => { 
+          webInv[row.item_id] = row.quantity || 0; 
+          bagInv[row.item_id] = row.bag_quantity || 0;
+        });
       }
+
       setWebInventory({ ...webInv });
       setOriginalWebInventory({ ...webInv });
-
-      // 2. 캐릭터 가방 = user_pet_bag.quantity (pet 별 분리)
-      const bagInv: Record<string, number> = {};
-      Object.keys(ITEMS).forEach(k => { bagInv[k] = 0; });
-
-      if (petDbId) {
-        const { data: bagData } = await supabase
-          .from('user_pet_bag')
-          .select('item_id, quantity')
-          .eq('user_id', user?.id)
-          .eq('pet_db_id', petDbId)
-          .in('item_id', Object.keys(ITEMS));
-
-        if (bagData) {
-          bagData.forEach(row => { bagInv[row.item_id] = row.quantity || 0; });
-        }
-      }
       setPetBag({ ...bagInv });
       setOriginalPetBag({ ...bagInv });
 
@@ -187,30 +179,18 @@ export default function MyPetsPage() {
 
     setIsSaving(true);
     try {
-      // 1. 웹 창고 저장 → user_inventory
-      const warehouseUpdates = Object.keys(ITEMS).map(itemId => ({
+      // 1. 웹 창고 및 캐릭터 가방 동시 저장 → user_inventory
+      const inventoryUpdates = Object.keys(ITEMS).map(itemId => ({
         user_id: user.id,
         item_id: itemId,
         quantity: webInventory[itemId] || 0,
+        bag_quantity: petBag[itemId] || 0,
         updated_at: new Date().toISOString()
       }));
       const { error: invError } = await supabase
         .from('user_inventory')
-        .upsert(warehouseUpdates, { onConflict: 'user_id, item_id' });
+        .upsert(inventoryUpdates, { onConflict: 'user_id, item_id' });
       if (invError) throw invError;
-
-      // 2. 캐릭터 가방 저장 → user_pet_bag (데스크톱 앱 Realtime 구독 대상)
-      const bagUpdates = Object.keys(ITEMS).map(itemId => ({
-        user_id: user.id,
-        pet_db_id: petDbId,
-        item_id: itemId,
-        quantity: petBag[itemId] || 0,
-        updated_at: new Date().toISOString()
-      }));
-      const { error: bagError } = await supabase
-        .from('user_pet_bag')
-        .upsert(bagUpdates, { onConflict: 'user_id, pet_db_id, item_id' });
-      if (bagError) throw bagError;
 
       setOriginalWebInventory({ ...webInventory });
       setOriginalPetBag({ ...petBag });
@@ -231,17 +211,17 @@ export default function MyPetsPage() {
     if (!petDbId) return;
 
     const channel = supabase
-      .channel(`web_pet_bag:${user.id}:${petDbId}`)
+      .channel(`web_user_inventory:${user.id}`)
       .on('postgres_changes' as any, {
         event: '*',
         schema: 'public',
-        table: 'user_pet_bag',
+        table: 'user_inventory',
         filter: `user_id=eq.${user.id}`,
       }, (payload: any) => {
         const newRow = payload.new;
-        if (newRow && newRow.pet_db_id === petDbId && ITEMS[newRow.item_id] !== undefined) {
-          setPetBag(prev => ({ ...prev, [newRow.item_id]: newRow.quantity || 0 }));
-          setOriginalPetBag(prev => ({ ...prev, [newRow.item_id]: newRow.quantity || 0 }));
+        if (newRow && ITEMS[newRow.item_id] !== undefined) {
+          setPetBag(prev => ({ ...prev, [newRow.item_id]: newRow.bag_quantity || 0 }));
+          setOriginalPetBag(prev => ({ ...prev, [newRow.item_id]: newRow.bag_quantity || 0 }));
         }
       })
       .subscribe();
