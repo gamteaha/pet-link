@@ -262,7 +262,8 @@ export default function MyPetsPage() {
       const petWithInventory = {
         ...pet,
         inventory: { ...(pet.inventory || {}) },
-        downloadedAt: Date.now()
+        downloadedAt: Date.now(),
+        serverUrl: typeof window !== "undefined" ? window.location.origin : "https://pet-link-1mnv.vercel.app"
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
       zip.file("pet-player/character.petlink", dataStr);

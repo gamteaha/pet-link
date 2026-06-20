@@ -57,8 +57,12 @@ export default function CartPage() {
       const zip = await JSZip.loadAsync(blob);
 
       // 3. Inject the pet's configuration as 'character.petlink' inside the zip
-      // Also make sure we save the name as well
-      const dataStr = JSON.stringify(pet, null, 2);
+      // Also make sure we save the name as well and inject serverUrl
+      const petWithServer = {
+        ...pet,
+        serverUrl: typeof window !== "undefined" ? window.location.origin : "https://pet-link-1mnv.vercel.app"
+      };
+      const dataStr = JSON.stringify(petWithServer, null, 2);
       zip.file("pet-player/character.petlink", dataStr);
 
       // 4. Generate the new zip blob
