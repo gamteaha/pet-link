@@ -103,7 +103,7 @@ export default function WebTutorial() {
     } catch (err) {
       console.error("Tutorial reward error:", err);
     }
-    setStep(3); // go to step 3: show bag-button guide
+    setStep(4); // go to step 4: show inventory transfer guide directly
   };
 
   const advanceToItemGuide = () => {
@@ -195,28 +195,7 @@ export default function WebTutorial() {
         )}
       </AnimatePresence>
 
-      {/* ── STEP 3: /my-pets → 가방 관리 버튼 먼저 클릭 안내 (버튼 강조는 my-pets에서) ── */}
-      <AnimatePresence>
-        {step === 3 && pathname === "/my-pets" && (
-          <div className="fixed inset-0 pointer-events-none z-[99999]">
-            <div className="absolute top-4 left-20 pointer-events-auto">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white border-4 border-[#e8dac1] p-5 rounded-3xl rounded-tl-none shadow-xl max-w-sm relative"
-              >
-                <p className="font-bold text-[#4a2e1b] text-base leading-snug">
-                  내 펫 목록이 보이지? 😊<br /><br />
-                  오른쪽에서 펫을 골라<br />
-                  <span className="text-[#e07a5f] font-black animate-pulse">👇 이 캐릭터의 가방 관리</span><br />
-                  버튼을 눌러봐!
-                </p>
-                <div className="absolute -left-4 top-4 w-4 h-4 bg-white border-l-4 border-t-4 border-[#e8dac1] rotate-45" />
-              </motion.div>
-            </div>
-          </div>
-        )}
-      </AnimatePresence>
+
 
       {/* ── STEP 4: /my-pets → 인벤토리 이동 안내 (버튼 강조는 my-pets에서) ── */}
       <AnimatePresence>

@@ -173,9 +173,6 @@ export default function MyPetsPage() {
 
   const handleSaveInventory = async () => {
     if (!user) return;
-    const pet = myPets.find(p => p.id === selectedPetId);
-    const petDbId = pet?.db_id || pet?.id;
-    if (!petDbId) return;
 
     setIsSaving(true);
     try {
@@ -205,10 +202,7 @@ export default function MyPetsPage() {
 
   // Realtime: 데스크톱 앱에서 아이템 사용 시 웹에서도 즉시 반영
   useEffect(() => {
-    if (!user || !selectedPetId) return;
-    const pet = myPets.find(p => p.id === selectedPetId);
-    const petDbId = pet?.db_id || pet?.id;
-    if (!petDbId) return;
+    if (!user) return;
 
     const channel = supabase
       .channel(`web_user_inventory:${user.id}`)
@@ -337,38 +331,7 @@ export default function MyPetsPage() {
               </button>
             </div>
 
-            {!selectedPetId ? (
-              <div className="bg-[#f8eedb] p-10 rounded-2xl border-2 border-[#e8dac1] text-center flex flex-col items-center justify-center h-64">
-                <span className="text-6xl mb-4">👈</span>
-                <p className="text-[#8c4a23] font-bold text-xl mb-2">캐릭터 가방을 관리해볼까요?</p>
-                <p className="text-sm text-[#a68a7e]">
-                  캐릭터 가방에 담긴 아이템은 <strong>모든 펫이 함께 공유</strong>합니다!<br/>
-                  오른쪽 목록에서 펫을 선택해 가방 관리를 시작해주세요.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {/* Pet Status Header */}
-                <div className="bg-[#fdf6e3] p-4 rounded-xl border-2 border-[#e8dac1] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">💝</span>
-                    <div>
-                      <p className="font-bold text-[#4a2e1b]">현재 펫 신뢰도</p>
-                      <p className="text-sm text-[#a68a7e]">Lv.{level}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end w-1/2">
-                    <p className="font-bold text-[#e07a5f] mb-1">❤️ {affection} / 100</p>
-                    <div className="w-full h-3 bg-[#e8dac1] rounded-full overflow-hidden border border-[#d0b8a0]">
-                      <div
-                        className="h-full bg-gradient-to-r from-[#e07a5f] to-[#f4a58a] rounded-full transition-all duration-500"
-                        style={{ width: `${affection}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Transfer UI */}
+            <div className="flex flex-col gap-4">
                 <div className="flex gap-4 items-stretch mt-4">
                   
                   {/* Web Warehouse */}
@@ -437,9 +400,7 @@ export default function MyPetsPage() {
                     아이템을 저장했는데 데스크톱 펫의 가방에 나타나지 않나요?<br/>
                     <span className="font-normal text-[#e8590c]">목록에서 [PC 펫 플레이어 재다운로드]를 눌러 펫 앱을 최신 버전으로 업데이트 해보세요!</span>
                   </p>
-                </div>
               </div>
-            )}
           </div>
         </div>
 
@@ -520,6 +481,20 @@ export default function MyPetsPage() {
                     <p className="text-[#a68a7e] font-bold mb-4">
                       {pet.isShopItem ? "기본 상점 아이템 (Shop Item)" : "커스텀 캐릭터 (Customized Pet)"}
                     </p>
+
+                    {/* Pet Status Display */}
+                    <div className="flex flex-col items-start w-full max-w-[200px] mb-4">
+                      <div className="flex justify-between w-full mb-1">
+                        <span className="font-bold text-[#e07a5f] text-xs">❤️ {pet.affection || 0} / 100</span>
+                        <span className="font-bold text-[#e07a5f] text-xs">Lv.{pet.level || 1}</span>
+                      </div>
+                      <div className="w-full h-2 bg-[#e8dac1] rounded-full overflow-hidden border border-[#d0b8a0]">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#e07a5f] to-[#f4a58a] rounded-full transition-all duration-500"
+                          style={{ width: `${pet.affection || 0}%` }}
+                        />
+                      </div>
+                    </div>
                     
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-2">
@@ -545,25 +520,8 @@ export default function MyPetsPage() {
 
                     <div className="flex gap-2 mt-2">
                       <button 
-                        data-tutorial-target="bag-btn"
-                        onClick={() => {
-                          setSelectedPetId(pet.id);
-                          if (typeof window !== "undefined" && (window as any).__tutorialAdvanceToStep4) {
-                            (window as any).__tutorialAdvanceToStep4();
-                          }
-                        }}
-                        className={`mt-4 w-full py-2 px-4 rounded-lg font-bold transition-all text-sm flex items-center justify-center gap-2 ${
-                          selectedPetId === pet.id
-                            ? "bg-[#e07a5f] text-white border-2 border-[#c44933] shadow-inner"
-                            : "bg-white text-[#c44933] border-2 border-[#c44933] hover:bg-[#fff0f5] shadow-sm"
-                        } ${tutorialStep === 3 && myPets.indexOf(pet) === 0 ? "ring-4 ring-[#e07a5f] animate-pulse" : ""}`}
-                      >
-                        {selectedPetId === pet.id ? "🎒 가방 관리 중..." : "🎒 공용 가방 관리하기"}
-                      </button>
-                      
-                      <button 
                         onClick={() => handleDeletePet(pet.db_id, pet.id)}
-                        className="px-6 py-3 rounded-xl font-bold border-2 border-red-500 text-red-500 hover:bg-red-50 shadow-sm transition-colors flex items-center justify-center gap-2"
+                        className="px-6 py-3 rounded-xl font-bold border-2 border-red-500 text-red-500 hover:bg-red-50 shadow-sm transition-colors flex items-center justify-center gap-2 w-full"
                       >
                         🗑️ 삭제
                       </button>
