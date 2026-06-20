@@ -175,7 +175,10 @@ export default function MyPetsPage() {
         serverUrl: typeof window !== "undefined" ? window.location.origin : "https://pet-link-1mrv.vercel.app"
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
-      zip.file("pet-player/character.petlink", dataStr);
+      
+      const targetFileName = isDedenne ? "pet_data.json" : "pet-player/character.petlink";
+      zip.file(targetFileName, dataStr);
+      
       const content = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(content);
       const a = document.createElement("a");
