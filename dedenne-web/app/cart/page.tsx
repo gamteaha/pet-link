@@ -60,7 +60,7 @@ export default function CartPage() {
       // Also make sure we save the name as well and inject serverUrl
       const petWithServer = {
         ...pet,
-        serverUrl: typeof window !== "undefined" ? window.location.origin : "https://pet-link-1mnv.vercel.app"
+        serverUrl: typeof window !== "undefined" ? window.location.origin : "https://pet-link-1mrv.vercel.app"
       };
       const dataStr = JSON.stringify(petWithServer, null, 2);
       zip.file("pet-player/character.petlink", dataStr);
