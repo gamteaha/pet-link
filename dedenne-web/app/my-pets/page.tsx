@@ -182,7 +182,7 @@ export default function MyPetsPage() {
   const handleSaveInventory = async () => {
     if (!user) return;
     const pet = myPets.find(p => p.id === selectedPetId);
-    const petDbId = pet?.db_id;
+    const petDbId = pet?.db_id || pet?.id;
     if (!petDbId) return;
 
     setIsSaving(true);
@@ -227,7 +227,7 @@ export default function MyPetsPage() {
   useEffect(() => {
     if (!user || !selectedPetId) return;
     const pet = myPets.find(p => p.id === selectedPetId);
-    const petDbId = pet?.db_id;
+    const petDbId = pet?.db_id || pet?.id;
     if (!petDbId) return;
 
     const channel = supabase
@@ -263,9 +263,9 @@ export default function MyPetsPage() {
       const zip = await JSZip.loadAsync(blob);
       
       // 3. Inject the pet's configuration AND inventory as 'character.petlink' inside the zip
-      // pet is already the config object augmented with db_id
       const petWithInventory = {
         ...pet,
+        user_id: user.id,
         inventory: { ...(pet.inventory || {}) },
         downloadedAt: Date.now(),
         serverUrl: typeof window !== "undefined" ? window.location.origin : "https://pet-link-1mrv.vercel.app"
