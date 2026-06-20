@@ -158,8 +158,10 @@ export default function MyPetsPage() {
   const handleDownloadPetData = async (pet: any) => {
     setIsDownloading((prev) => ({ ...prev, [pet.id]: true }));
     try {
-      const response = await fetch(`/releases/custom-pet-player.zip?t=${Date.now()}`);
-      if (!response.ok) throw new Error("Failed to fetch custom player package.");
+      const isDedenne = pet.shopId === 'dedenne' || pet.name === '데덴네';
+      const zipName = isDedenne ? 'dedenne-desktop-pet.zip' : 'custom-pet-player.zip';
+      const response = await fetch(`/releases/${zipName}?t=${Date.now()}`);
+      if (!response.ok) throw new Error(`Failed to fetch ${zipName}`);
       const blob = await response.blob();
 
       const zip = await JSZip.loadAsync(blob);
@@ -178,7 +180,7 @@ export default function MyPetsPage() {
       const url = URL.createObjectURL(content);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${pet.name || 'custom_pet'}_player.zip`;
+      a.download = isDedenne ? `dedenne_pet.zip` : `${pet.name || 'custom_pet'}_player.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
