@@ -371,24 +371,37 @@ export async function getAdminUsers(searchQuery: string) {
 export async function getAdminUserDetail(userId: string) {
   const supabase = getAdminClient();
 
-  // 1. 인벤토리 목록 (FK to items exists)
+  // 1. 인벤토리 목록 (FK to items missing, manual join)
   const { data: inventory } = await supabase
     .from("user_inventory")
-    .select(`
-      *,
-      items (
-        name,
-        category,
-        emoji
-      )
-    `)
+    .select("*")
     .eq("user_id", userId);
 
-  // 2. 주문 내역
+  let enrichedInventory: any[] = [];
+  if (inventory && inventory.length > 0) {
+    const invItemIds = Array.from(new Set(inventory.map(i => i.item_id).filter(Boolean)));
+    const { data: invItemsData } = await supabase
+      .from("items")
+      .select("id, name, category, emoji")
+      .in("id", invItemIds);
+
+    const invItemsMap: Record<string, any> = {};
+    if (invItemsData) {
+      invItemsData.forEach(item => invItemsMap[item.id] = item);
+    }
+
+    enrichedInventory = inventory.map(inv => ({
+      ...inv,
+      items: invItemsMap[inv.item_id] || null
+    }));
+  }
+
+  // 2. 주문 내역 (현금 결제만 표시하도록 필터 추가)
   const { data: orders } = await supabase
     .from("orders")
     .select("*")
     .eq("user_id", userId)
+    .gte("total_price", 1000)
     .order("created_at", { ascending: false });
 
   let enrichedOrders: any[] = [];
@@ -402,12 +415,14 @@ export async function getAdminUserDetail(userId: string) {
     let itemsMap: Record<string, any> = {};
     if (orderItems && orderItems.length > 0) {
       const itemIds = Array.from(new Set(orderItems.map(oi => oi.item_id).filter(Boolean)));
-      const { data: itemsData } = await supabase
-        .from("items")
-        .select("id, category, emoji")
-        .in("id", itemIds);
-      if (itemsData) {
-        itemsData.forEach(item => itemsMap[item.id] = item);
+      if (itemIds.length > 0) {
+        const { data: itemsData } = await supabase
+          .from("items")
+          .select("id, category, emoji")
+          .in("id", itemIds);
+        if (itemsData) {
+          itemsData.forEach(item => itemsMap[item.id] = item);
+        }
       }
     }
 
@@ -431,7 +446,7 @@ export async function getAdminUserDetail(userId: string) {
     .order("created_at", { ascending: false });
 
   return {
-    inventory: inventory || [],
+    inventory: enrichedInventory,
     orders: enrichedOrders,
     cheeseLogs: cheeseLogs || []
   };
