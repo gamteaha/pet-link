@@ -400,9 +400,10 @@ export default function MyPetsPage() {
                     아이템을 저장했는데 데스크톱 펫의 가방에 나타나지 않나요?<br/>
                     <span className="font-normal text-[#e8590c]">목록에서 [PC 펫 플레이어 재다운로드]를 눌러 펫 앱을 최신 버전으로 업데이트 해보세요!</span>
                   </p>
+                </div>
               </div>
+            </div>
           </div>
-        </div>
 
         {/* Right Column: Character Downloads */}
         <div className="w-full lg:w-1/2 flex flex-col gap-6">
