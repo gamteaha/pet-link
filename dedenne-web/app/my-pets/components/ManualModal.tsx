@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { DownloadCloud, PlayCircle, MousePointerClick, HeartHandshake, ChevronRight, ChevronLeft, X } from 'lucide-react';
+import { DownloadCloud, PlayCircle, MousePointerClick, HeartHandshake, ChevronRight, ChevronLeft, X, Terminal } from 'lucide-react';
 
 interface ManualModalProps {
   onClose: () => void;
@@ -24,13 +24,18 @@ const steps = [
     desc: "압축을 푼 폴더 안에 있는 'run_pet.bat' 파일을 더블클릭합니다. 처음 실행 시에는 펫을 띄우기 위한 1~2분 정도의 설치 과정이 자동으로 진행됩니다."
   },
   {
+    icon: <Terminal className="w-16 h-16 text-[#81b29a]" />,
+    title: "4. 명령프롬프트가 꺼지지 않는다면?",
+    desc: "만일 명령프롬프트가 꺼지지 않는다면 걱정마세요. 명령프롬프트를 중지하고 'launch.vbs'를 작동시키면 됩니다."
+  },
+  {
     icon: <MousePointerClick className="w-16 h-16 text-[#f2cc8f]" />,
-    title: "4. 펫 우클릭으로 메뉴 열기",
+    title: "5. 펫 우클릭으로 메뉴 열기",
     desc: "바탕화면에 귀여운 펫이 나타났나요? 펫을 마우스 '우클릭'하면 내 가방 열기, 쓰다듬기 등 다양한 상호작용 메뉴가 나타납니다."
   },
   {
     icon: <HeartHandshake className="w-16 h-16 text-[#e07a5f]" />,
-    title: "5. 가방에서 아이템 꺼내 쓰기",
+    title: "6. 가방에서 아이템 꺼내 쓰기",
     desc: "메뉴에서 '내 가방'을 열어 펫에게 밥을 주거나 씻겨주세요! 아이템을 사용하면 펫의 호감도(♥)가 쑥쑥 오릅니다!"
   }
 ];
