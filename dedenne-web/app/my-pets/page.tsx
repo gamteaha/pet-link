@@ -340,10 +340,10 @@ export default function MyPetsPage() {
             {!selectedPetId ? (
               <div className="bg-[#f8eedb] p-10 rounded-2xl border-2 border-[#e8dac1] text-center flex flex-col items-center justify-center h-64">
                 <span className="text-6xl mb-4">👈</span>
-                <p className="text-[#8c4a23] font-bold text-xl mb-2">어떤 펫의 가방을 열어볼까요?</p>
+                <p className="text-[#8c4a23] font-bold text-xl mb-2">캐릭터 가방을 관리해볼까요?</p>
                 <p className="text-sm text-[#a68a7e]">
-                  오른쪽 목록에서 가방을 열고 싶은 캐릭터의<br/>
-                  <strong>[🎒 이 캐릭터의 가방 관리]</strong> 버튼을 눌러주세요.
+                  캐릭터 가방에 담긴 아이템은 <strong>모든 펫이 함께 공유</strong>합니다!<br/>
+                  오른쪽 목록에서 펫을 선택해 가방 관리를 시작해주세요.
                 </p>
               </div>
             ) : (
@@ -401,7 +401,8 @@ export default function MyPetsPage() {
 
                   {/* Character Bag */}
                   <div className="flex-1 bg-[#fdf6e3] rounded-2xl p-4 border-[3px] border-[#d0b8a0]">
-                    <h3 className="text-center font-black text-xl mb-4 pb-2 border-b-2 border-[#e8dac1]">캐릭터 가방 🎒</h3>
+                    <h3 className="text-center font-black text-xl mb-1">캐릭터 가방 🎒</h3>
+                    <p className="text-center text-xs text-[#a68a7e] mb-3 pb-2 border-b-2 border-[#e8dac1] font-bold">(모든 펫 공유)</p>
                     <div className="space-y-3">
                       {Object.entries(ITEMS).map(([id, info]) => {
                         const qty = petBag[id] || 0;
@@ -551,13 +552,13 @@ export default function MyPetsPage() {
                             (window as any).__tutorialAdvanceToStep4();
                           }
                         }}
-                        className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 w-max shadow-sm transition-all ${
-                          selectedPetId === pet.id 
-                            ? "bg-[#e07a5f] text-white border-2 border-[#c44933]" 
-                            : "bg-white border-2 border-[#e07a5f] text-[#e07a5f] hover:bg-[#fff0f5]"
-                        } ${tutorialStep === 3 && myPets.indexOf(pet) === 0 ? "ring-4 ring-offset-2 ring-[#e07a5f] animate-pulse" : ""}`}
+                        className={`mt-4 w-full py-2 px-4 rounded-lg font-bold transition-all text-sm flex items-center justify-center gap-2 ${
+                          selectedPetId === pet.id
+                            ? "bg-[#e07a5f] text-white border-2 border-[#c44933] shadow-inner"
+                            : "bg-white text-[#c44933] border-2 border-[#c44933] hover:bg-[#fff0f5] shadow-sm"
+                        } ${tutorialStep === 3 && myPets.indexOf(pet) === 0 ? "ring-4 ring-[#e07a5f] animate-pulse" : ""}`}
                       >
-                        🎒 이 캐릭터의 가방 관리
+                        {selectedPetId === pet.id ? "🎒 가방 관리 중..." : "🎒 공용 가방 관리하기"}
                       </button>
                       
                       <button 
