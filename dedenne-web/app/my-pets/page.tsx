@@ -113,34 +113,45 @@ export default function MyPetsPage() {
     }
   }, [user, isLoading, router, selectedPetId]);
 
-  const loadInventoryData = async (petId: string | null) => {
+  const loadInventoryData = async (petConfigId: string | null) => {
     try {
-      // 웹 창고 = quantity - bag_quantity
-      // 캐릭터 가방 = bag_quantity (데스크톱 앱이 읽는 값)
+      const pet = myPets.find(p => p.id === petConfigId);
+      const petDbId = pet?.db_id;
+
+      // 1. 웹 창고 = user_inventory.quantity
       const { data: invData } = await supabase
         .from('user_inventory')
-        .select('item_id, quantity, bag_quantity')
+        .select('item_id, quantity')
         .eq('user_id', user?.id)
         .in('item_id', Object.keys(ITEMS));
 
       const webInv: Record<string, number> = {};
-      const bagInv: Record<string, number> = {};
-      Object.keys(ITEMS).forEach(k => { webInv[k] = 0; bagInv[k] = 0; });
-
+      Object.keys(ITEMS).forEach(k => { webInv[k] = 0; });
       if (invData) {
-        invData.forEach((row) => {
-          const bagQty = row.bag_quantity || 0;
-          const totalQty = row.quantity || 0;
-          bagInv[row.item_id] = bagQty;
-          webInv[row.item_id] = Math.max(0, totalQty - bagQty);
-        });
+        invData.forEach(row => { webInv[row.item_id] = row.quantity || 0; });
       }
       setWebInventory({ ...webInv });
       setOriginalWebInventory({ ...webInv });
+
+      // 2. 캐릭터 가방 = user_pet_bag.quantity (pet 별 분리)
+      const bagInv: Record<string, number> = {};
+      Object.keys(ITEMS).forEach(k => { bagInv[k] = 0; });
+
+      if (petDbId) {
+        const { data: bagData } = await supabase
+          .from('user_pet_bag')
+          .select('item_id, quantity')
+          .eq('user_id', user?.id)
+          .eq('pet_db_id', petDbId)
+          .in('item_id', Object.keys(ITEMS));
+
+        if (bagData) {
+          bagData.forEach(row => { bagInv[row.item_id] = row.quantity || 0; });
+        }
+      }
       setPetBag({ ...bagInv });
       setOriginalPetBag({ ...bagInv });
 
-      const pet = myPets.find(p => p.id === petId);
       setPetData(pet || null);
     } catch (err) {
       console.error("Failed to load inventory data:", err);
@@ -170,22 +181,36 @@ export default function MyPetsPage() {
 
   const handleSaveInventory = async () => {
     if (!user) return;
+    const pet = myPets.find(p => p.id === selectedPetId);
+    const petDbId = pet?.db_id;
+    if (!petDbId) return;
+
     setIsSaving(true);
     try {
-      // bag_quantity만 업데이트 (quantity는 구매 수량이므로 보존)
-      // 데스크톱 앱은 bag_quantity를 Realtime으로 즉시 감지
-      const bagUpdates = Object.keys(ITEMS).map((itemId) => ({
+      // 1. 웹 창고 저장 → user_inventory
+      const warehouseUpdates = Object.keys(ITEMS).map(itemId => ({
         user_id: user.id,
         item_id: itemId,
-        bag_quantity: petBag[itemId] || 0,
+        quantity: webInventory[itemId] || 0,
         updated_at: new Date().toISOString()
       }));
-
       const { error: invError } = await supabase
         .from('user_inventory')
-        .upsert(bagUpdates, { onConflict: 'user_id, item_id' });
-
+        .upsert(warehouseUpdates, { onConflict: 'user_id, item_id' });
       if (invError) throw invError;
+
+      // 2. 캐릭터 가방 저장 → user_pet_bag (데스크톱 앱 Realtime 구독 대상)
+      const bagUpdates = Object.keys(ITEMS).map(itemId => ({
+        user_id: user.id,
+        pet_db_id: petDbId,
+        item_id: itemId,
+        quantity: petBag[itemId] || 0,
+        updated_at: new Date().toISOString()
+      }));
+      const { error: bagError } = await supabase
+        .from('user_pet_bag')
+        .upsert(bagUpdates, { onConflict: 'user_id, pet_db_id, item_id' });
+      if (bagError) throw bagError;
 
       setOriginalWebInventory({ ...webInventory });
       setOriginalPetBag({ ...petBag });
@@ -197,6 +222,32 @@ export default function MyPetsPage() {
       setIsSaving(false);
     }
   };
+
+  // Realtime: 데스크톱 앱에서 아이템 사용 시 웹에서도 즉시 반영
+  useEffect(() => {
+    if (!user || !selectedPetId) return;
+    const pet = myPets.find(p => p.id === selectedPetId);
+    const petDbId = pet?.db_id;
+    if (!petDbId) return;
+
+    const channel = supabase
+      .channel(`web_pet_bag:${user.id}:${petDbId}`)
+      .on('postgres_changes' as any, {
+        event: '*',
+        schema: 'public',
+        table: 'user_pet_bag',
+        filter: `user_id=eq.${user.id}`,
+      }, (payload: any) => {
+        const newRow = payload.new;
+        if (newRow && newRow.pet_db_id === petDbId && ITEMS[newRow.item_id] !== undefined) {
+          setPetBag(prev => ({ ...prev, [newRow.item_id]: newRow.quantity || 0 }));
+          setOriginalPetBag(prev => ({ ...prev, [newRow.item_id]: newRow.quantity || 0 }));
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, selectedPetId, myPets, supabase]);
 
   const hasUnsavedChanges =
     JSON.stringify(webInventory) !== JSON.stringify(originalWebInventory) ||
