@@ -256,7 +256,7 @@ export default function MyPetsPage() {
   const handleDownloadPetData = async (pet: any) => {
     setIsDownloading((prev) => ({ ...prev, [pet.id]: true }));
     try {
-      const response = await fetch("/releases/custom-pet-player.zip");
+      const response = await fetch(`/releases/custom-pet-player.zip?t=${Date.now()}`);
       if (!response.ok) throw new Error("Failed to fetch custom player package.");
       const blob = await response.blob();
 
