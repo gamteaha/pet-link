@@ -221,6 +221,17 @@ export default function MyPetsPage() {
           if (typeof window !== "undefined" && (window as any).electronAPI?.savePetData) {
             await (window as any).electronAPI.savePetData({ ...newConfig, db_id });
           }
+
+          // Legacy Python app sync: Also sync local python app's pet_data.json if running locally
+          try {
+            await fetch('/api/python/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ config: { ...newConfig, db_id } })
+            });
+          } catch (e) {
+            // Ignore error if python app sync fails (e.g. deployed on vercel)
+          }
         }
       }
 
