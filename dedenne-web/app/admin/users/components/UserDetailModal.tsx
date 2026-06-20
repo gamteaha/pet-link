@@ -144,7 +144,7 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
                           <div className="p-4 bg-[#f8eedb] border-b border-[#e8dac1] flex flex-wrap justify-between items-center gap-4">
                             <div>
                               <span className="font-black text-[#4a2e1b] mr-2">
-                                {new Date(order.created_at).toLocaleString()}
+                                {new Date(order.ordered_at || order.created_at || Date.now()).toLocaleString()}
                               </span>
                               <span className="text-xs font-bold text-gray-500 uppercase">
                                 #{order.id.split("-")[0]}

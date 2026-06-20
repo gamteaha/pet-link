@@ -402,7 +402,7 @@ export async function getAdminUserDetail(userId: string) {
     .select("*")
     .eq("user_id", userId)
     .gte("total_price", 1000)
-    .order("created_at", { ascending: false });
+    .order("ordered_at", { ascending: false });
 
   let enrichedOrders: any[] = [];
   if (orders && orders.length > 0) {
