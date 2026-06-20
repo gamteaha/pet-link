@@ -176,7 +176,7 @@ export default function MyPetsPage() {
       };
       const dataStr = JSON.stringify(petWithInventory, null, 2);
       
-      const targetFileName = isDedenne ? "pet_data.json" : "pet-player/character.petlink";
+      const targetFileName = isDedenne ? "dedenne/pet_data.json" : "pet-player/character.petlink";
       zip.file(targetFileName, dataStr);
       
       const content = await zip.generateAsync({ type: "blob" });

@@ -7,6 +7,8 @@ def zip_directory(folder_path, zip_path):
             # Exclude venv and __pycache__
             dirs[:] = [d for d in dirs if d not in ['venv', '__pycache__']]
             for file in files:
+                if file == 'pet_data.json':
+                    continue
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, os.path.dirname(folder_path))
                 zipf.write(file_path, arcname)
